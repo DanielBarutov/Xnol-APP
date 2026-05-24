@@ -82,9 +82,11 @@ class SQLAlchemyAccountRepository(IAccountRepository):
         await self._session.flush()
 
     async def update_balance(self, account_id: UUID, delta: Decimal) -> None:
-        await self._session.execute(
+        result = await self._session.execute(
             sa_update(AccountModel)
             .where(AccountModel.id == account_id)
             .values(balance=AccountModel.balance + delta)
         )
         await self._session.flush()
+        if result.rowcount == 0:
+            raise NotFoundError("Account", str(account_id))
