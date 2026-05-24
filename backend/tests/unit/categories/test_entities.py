@@ -23,3 +23,10 @@ def test_subcategory_has_parent():
     parent_id = uuid4()
     child = Category(name="Рестораны", type="expense", icon="fork", color="#f97316", parent_id=parent_id)
     assert child.parent_id == parent_id
+
+
+def test_system_category_has_no_user():
+    cat = Category(name="Еда", type="expense", icon="utensils", color="#f97316", is_system=True)
+    assert cat.is_system is True
+    assert cat.user_id is None
+    assert cat.parent_id is None
