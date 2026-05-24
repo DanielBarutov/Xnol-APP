@@ -14,12 +14,16 @@ from app.modules.categories.infrastructure.repository import SQLAlchemyCategoryR
 from app.modules.transactions.domain.interfaces import ITransactionRepository
 from app.modules.transactions.infrastructure.fake_repository import FakeTransactionRepository
 from app.modules.transactions.infrastructure.repository import SQLAlchemyTransactionRepository
+from app.modules.accounts.domain.interfaces import IAccountRepository
+from app.modules.accounts.infrastructure.fake_repository import FakeAccountRepository
+from app.modules.accounts.infrastructure.repository import SQLAlchemyAccountRepository
 
 _bearer = HTTPBearer()
 
 _fake_user_repo = FakeUserRepository()
 _fake_category_repo = FakeCategoryRepository()
 _fake_transaction_repo = FakeTransactionRepository()
+_fake_account_repo = FakeAccountRepository()
 
 
 def get_user_repository(db: AsyncSession = Depends(get_db)) -> IUserRepository:
@@ -38,6 +42,12 @@ def get_transaction_repository(db: AsyncSession = Depends(get_db)) -> ITransacti
     if settings.use_fake_repo:
         return _fake_transaction_repo
     return SQLAlchemyTransactionRepository(db)
+
+
+def get_account_repository(db: AsyncSession = Depends(get_db)) -> IAccountRepository:
+    if settings.use_fake_repo:
+        return _fake_account_repo
+    return SQLAlchemyAccountRepository(db)
 
 
 async def get_current_user_id(
