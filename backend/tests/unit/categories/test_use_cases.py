@@ -132,3 +132,42 @@ async def test_delete_with_transactions_raises(repo, user_id, user_cat):
     repo._transaction_counts[user_cat.id] = 3
     with pytest.raises(ConflictError):
         await DeleteCategoryUseCase(repo).execute(user_cat.id, user_id)
+
+
+@pytest.mark.asyncio
+async def test_update_other_user_category_raises(repo, user_id):
+    other_user_id = uuid4()
+    other_cat = Category(name="Чужая", type="expense", icon="x", color="#fff", user_id=other_user_id)
+    await repo.create(other_cat)
+    dto = UpdateCategoryDTO(category_id=other_cat.id, user_id=user_id, name="Hack")
+    with pytest.raises(AuthorizationError):
+        await UpdateCategoryUseCase(repo).execute(dto)
+
+
+@pytest.mark.asyncio
+async def test_delete_other_user_category_raises(repo, user_id):
+    other_user_id = uuid4()
+    other_cat = Category(name="Чужая", type="expense", icon="x", color="#fff", user_id=other_user_id)
+    await repo.create(other_cat)
+    with pytest.raises(AuthorizationError):
+        await DeleteCategoryUseCase(repo).execute(other_cat.id, user_id)
+
+
+@pytest.mark.asyncio
+async def test_create_subcategory_under_other_user_category_raises(repo, user_id):
+    other_user_id = uuid4()
+    other_cat = Category(name="Чужая", type="expense", icon="x", color="#fff", user_id=other_user_id)
+    await repo.create(other_cat)
+    dto = CreateCategoryDTO(user_id=user_id, name="Суб", type="expense",
+                            icon="x", color="#fff", parent_id=other_cat.id)
+    with pytest.raises(AuthorizationError):
+        await CreateCategoryUseCase(repo).execute(dto)
+
+
+@pytest.mark.asyncio
+async def test_update_deleted_category_raises(repo, user_id, user_cat):
+    from datetime import datetime, timezone
+    await repo.soft_delete(user_cat.id, datetime.now(timezone.utc))
+    dto = UpdateCategoryDTO(category_id=user_cat.id, user_id=user_id, name="Ghost")
+    with pytest.raises(NotFoundError):
+        await UpdateCategoryUseCase(repo).execute(dto)

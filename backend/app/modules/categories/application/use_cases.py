@@ -71,7 +71,7 @@ class UpdateCategoryUseCase:
 
     async def execute(self, dto: UpdateCategoryDTO) -> CategoryDTO:
         cat = await self._repo.find_by_id(dto.category_id)
-        if cat is None:
+        if cat is None or cat.deleted_at is not None:
             raise NotFoundError("Category", str(dto.category_id))
         if cat.is_system:
             raise AuthorizationError("Cannot modify system category")
