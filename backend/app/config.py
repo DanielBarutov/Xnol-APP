@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,6 +20,13 @@ class Settings(BaseSettings):
 
     use_fake_repo: bool = False
     cors_origins: str = "http://localhost:5173"
+
+    @field_validator("jwt_secret_key")
+    @classmethod
+    def jwt_secret_key_min_length(cls, v: str) -> str:
+        if len(v) < 32:
+            raise ValueError("jwt_secret_key must be at least 32 characters")
+        return v
 
     @property
     def database_url(self) -> str:
