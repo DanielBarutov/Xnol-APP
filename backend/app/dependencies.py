@@ -11,10 +11,14 @@ from app.modules.auth.infrastructure.repository import SQLAlchemyUserRepository
 
 _bearer = HTTPBearer()
 
+# Module-level fake repo instance reused across requests when USE_FAKE_REPO=true.
+# This ensures register → login flows work in fake mode (shared state per process).
+_fake_user_repo = FakeUserRepository()
+
 
 def get_user_repository(db: AsyncSession = Depends(get_db)) -> IUserRepository:
     if settings.use_fake_repo:
-        return FakeUserRepository()
+        return _fake_user_repo
     return SQLAlchemyUserRepository(db)
 
 

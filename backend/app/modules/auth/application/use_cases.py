@@ -15,10 +15,11 @@ class RegisterUserUseCase:
         self._repo = user_repo
 
     async def execute(self, dto: RegisterUserDTO) -> UserDTO:
-        if await self._repo.find_by_email(dto.email):
-            raise AlreadyExistsError("User", dto.email)
+        email = dto.email.lower().strip()
+        if await self._repo.find_by_email(email):
+            raise AlreadyExistsError("User", email)
         user = User(
-            email=dto.email,
+            email=email,
             full_name=dto.full_name,
             primary_currency=dto.primary_currency,
             password_hash=PasswordHasher.hash(dto.password),
@@ -38,7 +39,7 @@ class LoginUserUseCase:
         self._repo = user_repo
 
     async def execute(self, dto: LoginUserDTO) -> TokenPairDTO:
-        user = await self._repo.find_by_email(dto.email)
+        user = await self._repo.find_by_email(dto.email.lower().strip())
         if not user or not user.password_hash:
             raise AuthenticationError()
         if not PasswordHasher.verify(dto.password, user.password_hash):

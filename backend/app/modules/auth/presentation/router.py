@@ -31,8 +31,8 @@ async def register(
                 primary_currency=body.primary_currency,
             )
         )
-    except AlreadyExistsError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    except AlreadyExistsError:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already in use")
     return UserResponse(
         id=dto.id,
         email=dto.email,
@@ -64,7 +64,10 @@ async def login(
 
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh(body: RefreshRequest) -> TokenResponse:
+async def refresh(
+    body: RefreshRequest,
+    repo: IUserRepository = Depends(get_user_repository),
+) -> TokenResponse:
     try:
         payload = JWTService.decode_token(body.refresh_token)
         if payload.get("type") != "refresh":
@@ -75,6 +78,12 @@ async def refresh(body: RefreshRequest) -> TokenResponse:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token",
         ) from exc
+    user = await repo.find_by_id(user_id)
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found or inactive",
+        )
     return TokenResponse(
         access_token=JWTService.create_access_token(user_id),
         refresh_token=JWTService.create_refresh_token(user_id),

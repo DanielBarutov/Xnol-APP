@@ -54,7 +54,10 @@ class SQLAlchemyUserRepository(IUserRepository):
         result = await self._session.execute(
             select(UserModel).where(UserModel.id == user.id)
         )
-        model = result.scalar_one()
+        model = result.scalar_one_or_none()
+        if model is None:
+            from app.shared.exceptions import NotFoundError
+            raise NotFoundError("User", str(user.id))
         model.email = user.email
         model.full_name = user.full_name
         model.primary_currency = user.primary_currency
