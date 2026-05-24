@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from app.config import settings
 from app.shared.base_model import Base
 import app.modules.auth.infrastructure.models  # noqa: F401
+import app.modules.categories.infrastructure.models  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:
