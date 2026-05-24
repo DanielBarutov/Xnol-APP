@@ -22,6 +22,19 @@ from app.shared.exceptions import AuthorizationError, ConflictError, NotFoundErr
 router = APIRouter(prefix="/api/v1/transactions", tags=["transactions"])
 
 
+def _map_dto(dto) -> TransactionResponse:
+    return TransactionResponse(
+        id=dto.id,
+        user_id=dto.user_id,
+        category_id=dto.category_id,
+        type=dto.type,
+        amount=dto.amount,
+        date=dto.date,
+        description=dto.description,
+        created_at=dto.created_at,
+    )
+
+
 @router.get("", response_model=list[TransactionResponse])
 async def list_transactions(
     date_from: date | None = Query(None),
@@ -30,11 +43,7 @@ async def list_transactions(
     repo: ITransactionRepository = Depends(get_transaction_repository),
 ) -> list[TransactionResponse]:
     dtos = await ListTransactionsUseCase(repo).execute(user_id, date_from, date_to)
-    return [TransactionResponse(
-        id=d.id, user_id=d.user_id, category_id=d.category_id,
-        type=d.type, amount=d.amount, date=d.date,
-        description=d.description, created_at=d.created_at,
-    ) for d in dtos]
+    return [_map_dto(d) for d in dtos]
 
 
 @router.post("", response_model=TransactionResponse, status_code=status.HTTP_201_CREATED)
@@ -59,11 +68,7 @@ async def create_transaction(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
     except ConflictError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
-    return TransactionResponse(
-        id=dto.id, user_id=dto.user_id, category_id=dto.category_id,
-        type=dto.type, amount=dto.amount, date=dto.date,
-        description=dto.description, created_at=dto.created_at,
-    )
+    return _map_dto(dto)
 
 
 @router.put("/{transaction_id}", response_model=TransactionResponse)
@@ -86,17 +91,11 @@ async def update_transaction(
                 description=body.description,
             )
         )
-    except NotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
-    except AuthorizationError as exc:
+    except (NotFoundError, AuthorizationError) as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
     except ConflictError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
-    return TransactionResponse(
-        id=dto.id, user_id=dto.user_id, category_id=dto.category_id,
-        type=dto.type, amount=dto.amount, date=dto.date,
-        description=dto.description, created_at=dto.created_at,
-    )
+    return _map_dto(dto)
 
 
 @router.delete("/{transaction_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -107,7 +106,5 @@ async def delete_transaction(
 ) -> None:
     try:
         await DeleteTransactionUseCase(repo).execute(transaction_id, user_id)
-    except NotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
-    except AuthorizationError as exc:
+    except (NotFoundError, AuthorizationError) as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))

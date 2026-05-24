@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import datetime as dt
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
 from uuid import UUID
@@ -11,16 +11,20 @@ class CreateTransactionRequest(BaseModel):
     category_id: UUID
     type: str  # "income" | "expense"
     amount: Decimal
-    date: dt.date
-    description: Optional[str] = None
+    date: date
+    description: str | None = None
 
 
 class UpdateTransactionRequest(BaseModel):
-    category_id: Optional[UUID] = None
-    type: Optional[str] = None
-    amount: Optional[Decimal] = None
-    date: Optional[dt.date] = None
-    description: Optional[str] = None
+    category_id: UUID | None = None
+    type: str | None = None
+    amount: Decimal | None = None
+    # Optional[date] required here: Pydantic v2 puts field defaults into localns
+    # during annotation evaluation, so `date = None` would shadow the `date` type
+    # making `date | None` fail. Optional[date] resolves via globalns where
+    # `date` is still the type.
+    date: Optional[date] = None
+    description: str | None = None
 
 
 class TransactionResponse(BaseModel):
@@ -29,6 +33,6 @@ class TransactionResponse(BaseModel):
     category_id: UUID
     type: str
     amount: Decimal
-    date: dt.date
-    description: Optional[str]
-    created_at: dt.datetime
+    date: date
+    description: str | None
+    created_at: datetime

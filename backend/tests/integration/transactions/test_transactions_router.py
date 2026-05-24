@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from uuid import uuid4
 from httpx import AsyncClient
 from app.modules.categories.domain.entities import Category
@@ -68,7 +69,6 @@ async def test_create_with_deleted_category_returns_409(
     auth_headers: dict,
     fake_category_repo: FakeCategoryRepository,
 ) -> None:
-    from datetime import datetime, timezone
     cat = Category(name="Удалена", type="expense", icon="x", color="#fff", is_system=True)
     await fake_category_repo.create(cat)
     await fake_category_repo.soft_delete(cat.id, datetime.now(timezone.utc))
