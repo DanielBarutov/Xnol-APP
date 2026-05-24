@@ -27,8 +27,20 @@ class FakeCategoryRepository(ICategoryRepository):
     async def update(self, category: Category) -> Category:
         if category.id not in self._store:
             raise NotFoundError("Category", str(category.id))
-        self._store[category.id] = category
-        return category
+        old = self._store[category.id]
+        updated = Category(
+            id=old.id,
+            user_id=old.user_id,
+            parent_id=old.parent_id,
+            name=category.name,
+            type=old.type,
+            icon=category.icon,
+            color=category.color,
+            is_system=old.is_system,
+            deleted_at=old.deleted_at,
+        )
+        self._store[category.id] = updated
+        return updated
 
     async def soft_delete(self, category_id: UUID, deleted_at: datetime) -> None:
         if category_id not in self._store:

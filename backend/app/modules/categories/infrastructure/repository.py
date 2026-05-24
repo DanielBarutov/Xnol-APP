@@ -85,10 +85,12 @@ class SQLAlchemyCategoryRepository(ICategoryRepository):
 
     async def has_active_children(self, category_id: UUID) -> bool:
         result = await self._session.execute(
-            select(CategoryModel).where(
+            select(CategoryModel)
+            .where(
                 CategoryModel.parent_id == category_id,
                 CategoryModel.deleted_at.is_(None),
             )
+            .limit(1)
         )
         return result.scalar_one_or_none() is not None
 
