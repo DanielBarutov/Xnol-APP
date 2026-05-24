@@ -121,3 +121,37 @@ async def test_delete_nonexistent_returns_404(
 ) -> None:
     resp = await client.delete(f"{TRANSACTIONS_URL}/{uuid4()}", headers=auth_headers)
     assert resp.status_code == 404
+
+
+async def test_delete_other_user_transaction_returns_404(
+    client: AsyncClient, fake_category_repo: FakeCategoryRepository
+) -> None:
+    # Register two users
+    await client.post("/api/v1/auth/register", json={
+        "email": "user_a@example.com", "password": "pass1234",
+        "full_name": "User A", "primary_currency": "RUB",
+    })
+    resp_a = await client.post("/api/v1/auth/login", json={
+        "email": "user_a@example.com", "password": "pass1234",
+    })
+    headers_a = {"Authorization": f"Bearer {resp_a.json()['access_token']}"}
+
+    await client.post("/api/v1/auth/register", json={
+        "email": "user_b@example.com", "password": "pass1234",
+        "full_name": "User B", "primary_currency": "RUB",
+    })
+    resp_b = await client.post("/api/v1/auth/login", json={
+        "email": "user_b@example.com", "password": "pass1234",
+    })
+    headers_b = {"Authorization": f"Bearer {resp_b.json()['access_token']}"}
+
+    # user_a creates a transaction
+    cat_id = await _make_cat(fake_category_repo)
+    create_resp = await client.post(TRANSACTIONS_URL, headers=headers_a, json={
+        "category_id": cat_id, "type": "expense", "amount": "500", "date": "2026-05-01",
+    })
+    txn_id = create_resp.json()["id"]
+
+    # user_b tries to delete user_a's transaction — should get 404
+    resp = await client.delete(f"{TRANSACTIONS_URL}/{txn_id}", headers=headers_b)
+    assert resp.status_code == 404
