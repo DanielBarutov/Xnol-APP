@@ -8,18 +8,26 @@ from app.modules.auth.application.services import JWTService
 from app.modules.auth.domain.interfaces import IUserRepository
 from app.modules.auth.infrastructure.fake_repository import FakeUserRepository
 from app.modules.auth.infrastructure.repository import SQLAlchemyUserRepository
+from app.modules.categories.domain.interfaces import ICategoryRepository
+from app.modules.categories.infrastructure.fake_repository import FakeCategoryRepository
+from app.modules.categories.infrastructure.repository import SQLAlchemyCategoryRepository
 
 _bearer = HTTPBearer()
 
-# Module-level fake repo instance reused across requests when USE_FAKE_REPO=true.
-# This ensures register → login flows work in fake mode (shared state per process).
 _fake_user_repo = FakeUserRepository()
+_fake_category_repo = FakeCategoryRepository()
 
 
 def get_user_repository(db: AsyncSession = Depends(get_db)) -> IUserRepository:
     if settings.use_fake_repo:
         return _fake_user_repo
     return SQLAlchemyUserRepository(db)
+
+
+def get_category_repository(db: AsyncSession = Depends(get_db)) -> ICategoryRepository:
+    if settings.use_fake_repo:
+        return _fake_category_repo
+    return SQLAlchemyCategoryRepository(db)
 
 
 async def get_current_user_id(
