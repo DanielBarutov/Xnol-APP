@@ -2,7 +2,7 @@ services:
   api:
     build: ./backend
     ports:
-      - "18000:8000"
+      - "8000:8000"
     volumes:
       - ./backend:/app
     env_file: .env
@@ -20,7 +20,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
     ports:
-      - "15432:5432"
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -32,7 +32,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "16379:6379"
+      - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
