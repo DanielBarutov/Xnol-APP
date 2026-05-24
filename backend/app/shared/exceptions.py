@@ -20,3 +20,8 @@ class AuthenticationError(DomainError):
 class AuthorizationError(DomainError):
     def __init__(self, message: str = "Access denied") -> None:
         super().__init__(message)
+
+
+class ConflictError(DomainError):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
