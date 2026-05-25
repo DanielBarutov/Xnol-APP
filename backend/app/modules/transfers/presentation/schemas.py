@@ -2,17 +2,17 @@ from __future__ import annotations
 
 import datetime as dt
 from decimal import Decimal
-from typing import Optional
+from typing import Literal, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, model_validator
 
 
 class CreateTransferRequest(BaseModel):
-    source_type: str  # "savings_account" | "deposit" | "external"
+    source_type: Literal["savings_account", "deposit", "external"]
     source_id: UUID | None = None
     source_label: str | None = None
-    dest_type: str
+    dest_type: Literal["savings_account", "deposit", "external"]
     dest_id: UUID | None = None
     dest_label: str | None = None
     amount: Decimal
@@ -30,10 +30,10 @@ class CreateTransferRequest(BaseModel):
 
 
 class UpdateTransferRequest(BaseModel):
-    source_type: str | None = None
+    source_type: Literal["savings_account", "deposit", "external"] | None = None
     source_id: UUID | None = None
     source_label: str | None = None
-    dest_type: str | None = None
+    dest_type: Literal["savings_account", "deposit", "external"] | None = None
     dest_id: UUID | None = None
     dest_label: str | None = None
     amount: Decimal | None = None
