@@ -20,7 +20,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     op.add_column('transactions', sa.Column('account_id', sa.Uuid(), nullable=False))
-    op.create_index('ix_transactions_account_id', 'transactions', ['account_id'], unique=False)
+    op.create_index(op.f('ix_transactions_account_id'), 'transactions', ['account_id'], unique=False)
     op.create_foreign_key(
         'fk_transactions_account_id', 'transactions',
         'savings_accounts', ['account_id'], ['id'],
@@ -29,5 +29,5 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_constraint('fk_transactions_account_id', 'transactions', type_='foreignkey')
-    op.drop_index('ix_transactions_account_id', table_name='transactions')
+    op.drop_index(op.f('ix_transactions_account_id'), table_name='transactions')
     op.drop_column('transactions', 'account_id')
