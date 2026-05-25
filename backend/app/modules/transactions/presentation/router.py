@@ -2,7 +2,13 @@ from datetime import date
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.dependencies import get_category_repository, get_current_user_id, get_transaction_repository
+from app.dependencies import (
+    get_account_repository,
+    get_category_repository,
+    get_current_user_id,
+    get_transaction_repository,
+)
+from app.modules.accounts.domain.interfaces import IAccountRepository
 from app.modules.categories.domain.interfaces import ICategoryRepository
 from app.modules.transactions.application.dtos import CreateTransactionDTO, UpdateTransactionDTO
 from app.modules.transactions.application.use_cases import (
@@ -26,6 +32,7 @@ def _map_dto(dto) -> TransactionResponse:
     return TransactionResponse(
         id=dto.id,
         user_id=dto.user_id,
+        account_id=dto.account_id,
         category_id=dto.category_id,
         type=dto.type,
         amount=dto.amount,
@@ -52,11 +59,13 @@ async def create_transaction(
     user_id: UUID = Depends(get_current_user_id),
     repo: ITransactionRepository = Depends(get_transaction_repository),
     cat_repo: ICategoryRepository = Depends(get_category_repository),
+    account_repo: IAccountRepository = Depends(get_account_repository),
 ) -> TransactionResponse:
     try:
-        dto = await CreateTransactionUseCase(repo, cat_repo).execute(
+        dto = await CreateTransactionUseCase(repo, cat_repo, account_repo).execute(
             CreateTransactionDTO(
                 user_id=user_id,
+                account_id=body.account_id,
                 category_id=body.category_id,
                 type=body.type,
                 amount=body.amount,
@@ -78,12 +87,14 @@ async def update_transaction(
     user_id: UUID = Depends(get_current_user_id),
     repo: ITransactionRepository = Depends(get_transaction_repository),
     cat_repo: ICategoryRepository = Depends(get_category_repository),
+    account_repo: IAccountRepository = Depends(get_account_repository),
 ) -> TransactionResponse:
     try:
-        dto = await UpdateTransactionUseCase(repo, cat_repo).execute(
+        dto = await UpdateTransactionUseCase(repo, cat_repo, account_repo).execute(
             UpdateTransactionDTO(
                 transaction_id=transaction_id,
                 user_id=user_id,
+                account_id=body.account_id,
                 category_id=body.category_id,
                 type=body.type,
                 amount=body.amount,
@@ -103,8 +114,9 @@ async def delete_transaction(
     transaction_id: UUID,
     user_id: UUID = Depends(get_current_user_id),
     repo: ITransactionRepository = Depends(get_transaction_repository),
+    account_repo: IAccountRepository = Depends(get_account_repository),
 ) -> None:
     try:
-        await DeleteTransactionUseCase(repo).execute(transaction_id, user_id)
+        await DeleteTransactionUseCase(repo, account_repo).execute(transaction_id, user_id)
     except (NotFoundError, AuthorizationError) as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
