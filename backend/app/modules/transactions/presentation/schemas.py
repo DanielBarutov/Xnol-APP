@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 
 class CreateTransactionRequest(BaseModel):
+    account_id: UUID
     category_id: UUID
     type: str  # "income" | "expense"
     amount: Decimal
@@ -16,6 +17,7 @@ class CreateTransactionRequest(BaseModel):
 
 
 class UpdateTransactionRequest(BaseModel):
+    account_id: UUID | None = None
     category_id: UUID | None = None
     type: str | None = None
     amount: Decimal | None = None
@@ -30,6 +32,7 @@ class UpdateTransactionRequest(BaseModel):
 class TransactionResponse(BaseModel):
     id: UUID
     user_id: UUID
+    account_id: UUID
     category_id: UUID
     type: str
     amount: Decimal
