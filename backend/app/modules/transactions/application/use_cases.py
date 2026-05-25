@@ -1,6 +1,8 @@
 from datetime import date
+from decimal import Decimal
 from uuid import UUID
 
+from app.modules.accounts.domain.interfaces import IAccountRepository
 from app.modules.categories.domain.interfaces import ICategoryRepository
 from app.modules.transactions.application.dtos import (
     CreateTransactionDTO,
@@ -16,6 +18,7 @@ def _to_dto(t: Transaction) -> TransactionDTO:
     return TransactionDTO(
         id=t.id,
         user_id=t.user_id,
+        account_id=t.account_id,
         category_id=t.category_id,
         type=t.type,
         amount=t.amount,
@@ -23,6 +26,10 @@ def _to_dto(t: Transaction) -> TransactionDTO:
         description=t.description,
         created_at=t.created_at,
     )
+
+
+def _balance_delta(txn_type: str, amount: Decimal) -> Decimal:
+    return amount if txn_type == "income" else -amount
 
 
 async def _validate_category(
@@ -37,6 +44,18 @@ async def _validate_category(
         raise ConflictError("Category is deleted")
     if cat.user_id is not None and cat.user_id != user_id:
         raise ConflictError("Category is not accessible")
+
+
+async def _validate_account(
+    account_repo: IAccountRepository,
+    account_id: UUID,
+    user_id: UUID,
+) -> None:
+    account = await account_repo.find_by_id(account_id)
+    if account is None or account.user_id != user_id:
+        raise NotFoundError("Account", str(account_id))
+    if account.deleted_at is not None:
+        raise ConflictError("Account is deleted")
 
 
 class ListTransactionsUseCase:
@@ -54,14 +73,22 @@ class ListTransactionsUseCase:
 
 
 class CreateTransactionUseCase:
-    def __init__(self, repo: ITransactionRepository, cat_repo: ICategoryRepository) -> None:
+    def __init__(
+        self,
+        repo: ITransactionRepository,
+        cat_repo: ICategoryRepository,
+        account_repo: IAccountRepository,
+    ) -> None:
         self._repo = repo
         self._cat_repo = cat_repo
+        self._account_repo = account_repo
 
     async def execute(self, dto: CreateTransactionDTO) -> TransactionDTO:
         await _validate_category(self._cat_repo, dto.category_id, dto.user_id)
+        await _validate_account(self._account_repo, dto.account_id, dto.user_id)
         txn = Transaction(
             user_id=dto.user_id,
+            account_id=dto.account_id,
             category_id=dto.category_id,
             type=dto.type,
             amount=dto.amount,
@@ -69,13 +96,20 @@ class CreateTransactionUseCase:
             description=dto.description,
         )
         saved = await self._repo.create(txn)
+        await self._account_repo.update_balance(saved.account_id, _balance_delta(saved.type, saved.amount))
         return _to_dto(saved)
 
 
 class UpdateTransactionUseCase:
-    def __init__(self, repo: ITransactionRepository, cat_repo: ICategoryRepository) -> None:
+    def __init__(
+        self,
+        repo: ITransactionRepository,
+        cat_repo: ICategoryRepository,
+        account_repo: IAccountRepository,
+    ) -> None:
         self._repo = repo
         self._cat_repo = cat_repo
+        self._account_repo = account_repo
 
     async def execute(self, dto: UpdateTransactionDTO) -> TransactionDTO:
         txn = await self._repo.find_by_id(dto.transaction_id)
@@ -83,26 +117,41 @@ class UpdateTransactionUseCase:
             raise NotFoundError("Transaction", str(dto.transaction_id))
         if txn.user_id != dto.user_id:
             raise AuthorizationError()
+
+        new_account_id = dto.account_id if dto.account_id is not None else txn.account_id
+        if dto.account_id is not None:
+            await _validate_account(self._account_repo, dto.account_id, dto.user_id)
+
         new_category_id = dto.category_id if dto.category_id is not None else txn.category_id
         if dto.category_id is not None:
             await _validate_category(self._cat_repo, dto.category_id, dto.user_id)
+
+        new_type = dto.type if dto.type is not None else txn.type
+        new_amount = dto.amount if dto.amount is not None else txn.amount
+
+        # Revert old balance effect, then apply new
+        await self._account_repo.update_balance(txn.account_id, -_balance_delta(txn.type, txn.amount))
+
         updated = Transaction(
             id=txn.id,
             user_id=txn.user_id,
+            account_id=new_account_id,
             category_id=new_category_id,
-            type=dto.type if dto.type is not None else txn.type,
-            amount=dto.amount if dto.amount is not None else txn.amount,
+            type=new_type,
+            amount=new_amount,
             date=dto.date if dto.date is not None else txn.date,
             description=dto.description if dto.description is not None else txn.description,
             created_at=txn.created_at,
         )
         saved = await self._repo.update(updated)
+        await self._account_repo.update_balance(saved.account_id, _balance_delta(saved.type, saved.amount))
         return _to_dto(saved)
 
 
 class DeleteTransactionUseCase:
-    def __init__(self, repo: ITransactionRepository) -> None:
+    def __init__(self, repo: ITransactionRepository, account_repo: IAccountRepository) -> None:
         self._repo = repo
+        self._account_repo = account_repo
 
     async def execute(self, transaction_id: UUID, user_id: UUID) -> None:
         txn = await self._repo.find_by_id(transaction_id)
@@ -110,4 +159,5 @@ class DeleteTransactionUseCase:
             raise NotFoundError("Transaction", str(transaction_id))
         if txn.user_id != user_id:
             raise AuthorizationError()
+        await self._account_repo.update_balance(txn.account_id, -_balance_delta(txn.type, txn.amount))
         await self._repo.delete(transaction_id)
