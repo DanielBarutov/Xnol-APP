@@ -22,10 +22,10 @@ class CreateTransferRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_ids(self) -> CreateTransferRequest:
-        if self.source_type == "savings_account" and self.source_id is None:
-            raise ValueError("source_id is required when source_type is savings_account")
-        if self.dest_type == "savings_account" and self.dest_id is None:
-            raise ValueError("dest_id is required when dest_type is savings_account")
+        if self.source_type in ("savings_account", "deposit") and self.source_id is None:
+            raise ValueError(f"source_id is required when source_type is {self.source_type}")
+        if self.dest_type in ("savings_account", "deposit") and self.dest_id is None:
+            raise ValueError(f"dest_id is required when dest_type is {self.dest_type}")
         return self
 
 
@@ -43,10 +43,10 @@ class UpdateTransferRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_ids(self) -> UpdateTransferRequest:
-        if self.source_type == "savings_account" and self.source_id is None:
-            raise ValueError("source_id is required when source_type is savings_account")
-        if self.dest_type == "savings_account" and self.dest_id is None:
-            raise ValueError("dest_id is required when dest_type is savings_account")
+        if self.source_type in ("savings_account", "deposit") and self.source_id is None:
+            raise ValueError(f"source_id is required when source_type is {self.source_type}")
+        if self.dest_type in ("savings_account", "deposit") and self.dest_id is None:
+            raise ValueError(f"dest_id is required when dest_type is {self.dest_type}")
         return self
 
 

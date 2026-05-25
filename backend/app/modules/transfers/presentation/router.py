@@ -1,8 +1,9 @@
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.dependencies import get_account_repository, get_current_user_id, get_transfer_repository
+from app.dependencies import get_account_repository, get_current_user_id, get_deposit_repository, get_transfer_repository
 from app.modules.accounts.domain.interfaces import IAccountRepository
+from app.modules.deposits.domain.interfaces import IDepositRepository
 from app.modules.transfers.application.dtos import CreateTransferDTO, UpdateTransferDTO
 from app.modules.transfers.application.use_cases import (
     CreateTransferUseCase,
@@ -54,21 +55,15 @@ async def create_transfer(
     user_id: UUID = Depends(get_current_user_id),
     repo: ITransferRepository = Depends(get_transfer_repository),
     account_repo: IAccountRepository = Depends(get_account_repository),
+    deposit_repo: IDepositRepository = Depends(get_deposit_repository),
 ) -> TransferResponse:
     try:
-        dto = await CreateTransferUseCase(repo, account_repo).execute(
+        dto = await CreateTransferUseCase(repo, account_repo, deposit_repo).execute(
             CreateTransferDTO(
-                user_id=user_id,
-                source_type=body.source_type,
-                source_id=body.source_id,
-                source_label=body.source_label,
-                dest_type=body.dest_type,
-                dest_id=body.dest_id,
-                dest_label=body.dest_label,
-                amount=body.amount,
-                currency=body.currency,
-                date=body.date,
-                description=body.description,
+                user_id=user_id, source_type=body.source_type, source_id=body.source_id,
+                source_label=body.source_label, dest_type=body.dest_type, dest_id=body.dest_id,
+                dest_label=body.dest_label, amount=body.amount, currency=body.currency,
+                date=body.date, description=body.description,
             )
         )
     except NotFoundError as exc:
@@ -85,22 +80,16 @@ async def update_transfer(
     user_id: UUID = Depends(get_current_user_id),
     repo: ITransferRepository = Depends(get_transfer_repository),
     account_repo: IAccountRepository = Depends(get_account_repository),
+    deposit_repo: IDepositRepository = Depends(get_deposit_repository),
 ) -> TransferResponse:
     try:
-        dto = await UpdateTransferUseCase(repo, account_repo).execute(
+        dto = await UpdateTransferUseCase(repo, account_repo, deposit_repo).execute(
             UpdateTransferDTO(
-                transfer_id=transfer_id,
-                user_id=user_id,
-                source_type=body.source_type,
-                source_id=body.source_id,
-                source_label=body.source_label,
-                dest_type=body.dest_type,
-                dest_id=body.dest_id,
-                dest_label=body.dest_label,
-                amount=body.amount,
-                currency=body.currency,
-                date=body.date,
-                description=body.description,
+                transfer_id=transfer_id, user_id=user_id,
+                source_type=body.source_type, source_id=body.source_id,
+                source_label=body.source_label, dest_type=body.dest_type, dest_id=body.dest_id,
+                dest_label=body.dest_label, amount=body.amount, currency=body.currency,
+                date=body.date, description=body.description,
             )
         )
     except NotFoundError as exc:
@@ -116,8 +105,9 @@ async def delete_transfer(
     user_id: UUID = Depends(get_current_user_id),
     repo: ITransferRepository = Depends(get_transfer_repository),
     account_repo: IAccountRepository = Depends(get_account_repository),
+    deposit_repo: IDepositRepository = Depends(get_deposit_repository),
 ) -> None:
     try:
-        await DeleteTransferUseCase(repo, account_repo).execute(transfer_id, user_id)
+        await DeleteTransferUseCase(repo, account_repo, deposit_repo).execute(transfer_id, user_id)
     except NotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))

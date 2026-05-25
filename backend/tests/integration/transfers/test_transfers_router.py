@@ -180,11 +180,21 @@ async def test_create_external_to_external_no_balance_change(
     assert accounts[0]["balance"] == "5000.00"
 
 
+async def _make_deposit(client: AsyncClient, headers: dict) -> str:
+    resp = await client.post("/api/v1/deposits", headers=headers, json={
+        "name": "Test Deposit", "bank_name": "Bank",
+        "amount": "50000.00", "interest_rate": "0.0500",
+        "interest_type": "simple", "open_date": "2026-01-01",
+        "close_date": "2027-01-01", "auto_renew": False, "currency": "RUB",
+    })
+    return resp.json()["id"]
+
+
 async def test_create_savings_to_deposit_updates_source_only(
     client: AsyncClient, auth_headers: dict
 ) -> None:
     acc = await _make_account(client, auth_headers, "10000.00")
-    deposit_id = str(uuid4())  # arbitrary; deposit balance not tracked here
+    deposit_id = await _make_deposit(client, auth_headers)
     resp = await client.post(TRANSFERS_URL, headers=auth_headers, json={
         "source_type": "savings_account", "source_id": acc,
         "dest_type": "deposit", "dest_id": deposit_id,
