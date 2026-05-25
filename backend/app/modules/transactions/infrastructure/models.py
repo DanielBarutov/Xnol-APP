@@ -11,6 +11,7 @@ class TransactionModel(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    account_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("savings_accounts.id"), index=True)
     category_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("categories.id"), index=True)
     type: Mapped[str] = mapped_column(Enum("income", "expense", name="transaction_type_enum"))
     amount: Mapped[Decimal] = mapped_column(Numeric(15, 2))
