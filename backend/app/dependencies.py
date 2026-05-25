@@ -23,6 +23,9 @@ from app.modules.transfers.infrastructure.repository import SQLAlchemyTransferRe
 from app.modules.deposits.domain.interfaces import IDepositRepository
 from app.modules.deposits.infrastructure.fake_repository import FakeDepositRepository
 from app.modules.deposits.infrastructure.repository import SQLAlchemyDepositRepository
+from app.modules.stats.domain.interfaces import IStatsRepository
+from app.modules.stats.infrastructure.fake_repository import FakeStatsRepository
+from app.modules.stats.infrastructure.repository import SQLAlchemyStatsRepository
 
 _bearer = HTTPBearer()
 
@@ -32,6 +35,7 @@ _fake_transaction_repo = FakeTransactionRepository()
 _fake_account_repo = FakeAccountRepository()
 _fake_transfer_repo = FakeTransferRepository()
 _fake_deposit_repo = FakeDepositRepository()
+_fake_stats_repo = FakeStatsRepository()
 
 
 def get_user_repository(db: AsyncSession = Depends(get_db)) -> IUserRepository:
@@ -68,6 +72,12 @@ def get_deposit_repository(db: AsyncSession = Depends(get_db)) -> IDepositReposi
     if settings.use_fake_repo:
         return _fake_deposit_repo
     return SQLAlchemyDepositRepository(db)
+
+
+def get_stats_repository(db: AsyncSession = Depends(get_db)) -> IStatsRepository:
+    if settings.use_fake_repo:
+        return _fake_stats_repo
+    return SQLAlchemyStatsRepository(db)
 
 
 async def get_current_user_id(
