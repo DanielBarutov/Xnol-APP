@@ -12,6 +12,7 @@ def _to_entity(m: TransactionModel) -> Transaction:
     return Transaction(
         id=m.id,
         user_id=m.user_id,
+        account_id=m.account_id,
         category_id=m.category_id,
         type=m.type,
         amount=m.amount,
@@ -51,6 +52,7 @@ class SQLAlchemyTransactionRepository(ITransactionRepository):
         model = TransactionModel(
             id=transaction.id,
             user_id=transaction.user_id,
+            account_id=transaction.account_id,
             category_id=transaction.category_id,
             type=transaction.type,
             amount=transaction.amount,
@@ -69,6 +71,7 @@ class SQLAlchemyTransactionRepository(ITransactionRepository):
         model = result.scalar_one_or_none()
         if model is None:
             raise NotFoundError("Transaction", str(transaction.id))
+        model.account_id = transaction.account_id
         model.category_id = transaction.category_id
         model.type = transaction.type
         model.amount = transaction.amount
