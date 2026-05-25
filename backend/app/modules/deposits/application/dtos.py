@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Literal
 from uuid import UUID
 
 
@@ -60,5 +61,5 @@ class UpdateDepositDTO:
 class CloseDepositDTO:
     deposit_id: UUID
     user_id: UUID
-    close_type: str  # "closed" | "early_closed"
+    close_type: Literal["closed", "early_closed"]
     actual_close_date: date
