@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -11,7 +11,7 @@ class CreateDepositRequest(BaseModel):
     bank_name: str
     amount: Decimal
     interest_rate: Decimal
-    interest_type: str  # "simple" | "compound"
+    interest_type: Literal["simple", "compound"]
     open_date: date
     close_date: date
     currency: str
@@ -25,16 +25,16 @@ class UpdateDepositRequest(BaseModel):
     bank_name: str | None = None
     amount: Decimal | None = None
     interest_rate: Decimal | None = None
-    interest_type: str | None = None
-    open_date: Optional[date] = None
-    close_date: Optional[date] = None
+    interest_type: Literal["simple", "compound"] | None = None
+    open_date: date | None = None
+    close_date: date | None = None
     early_closure_rate: Decimal | None = None
     auto_renew: bool | None = None
     balance: Decimal | None = None
 
 
 class CloseDepositRequest(BaseModel):
-    close_type: str  # "closed" | "early_closed"
+    close_type: Literal["closed", "early_closed"]
     actual_close_date: date
 
 
