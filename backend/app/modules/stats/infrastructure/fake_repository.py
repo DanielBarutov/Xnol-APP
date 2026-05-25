@@ -12,13 +12,13 @@ class FakeStatsRepository(IStatsRepository):
         self._account_rows: list[RawAccountRow] = []
 
     def seed_category_rows(self, rows: list[RawCategoryRow]) -> None:
-        self._category_rows = rows
+        self._category_rows = list(rows)
 
     def seed_timeline_rows(self, rows: list[RawTimelineRow]) -> None:
-        self._timeline_rows = rows
+        self._timeline_rows = list(rows)
 
     def seed_account_rows(self, rows: list[RawAccountRow]) -> None:
-        self._account_rows = rows
+        self._account_rows = list(rows)
 
     async def get_category_rows(self, user_id: UUID, date_from: date, date_to: date) -> list[RawCategoryRow]:
         return list(self._category_rows)

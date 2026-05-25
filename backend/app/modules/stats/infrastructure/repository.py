@@ -25,6 +25,7 @@ class SQLAlchemyStatsRepository(IStatsRepository):
                 TransactionModel.type,
                 func.sum(TransactionModel.amount).label("total"),
             )
+            # Intentionally includes soft-deleted categories: past transactions retain their category data.
             .join(CategoryModel, TransactionModel.category_id == CategoryModel.id)
             .where(
                 TransactionModel.user_id == user_id,
