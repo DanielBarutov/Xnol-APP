@@ -41,11 +41,11 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index("ix_deposits_user_id", "deposits", ["user_id"])
+    op.create_index(op.f("ix_deposits_user_id"), "deposits", ["user_id"])
 
 
 def downgrade() -> None:
-    op.drop_index("ix_deposits_user_id", table_name="deposits")
+    op.drop_index(op.f("ix_deposits_user_id"), table_name="deposits")
     op.drop_table("deposits")
     sa.Enum(name="deposit_interest_type_enum").drop(op.get_bind(), checkfirst=True)
     sa.Enum(name="deposit_status_enum").drop(op.get_bind(), checkfirst=True)
