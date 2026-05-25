@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 @dataclass
 class Transaction:
     user_id: UUID
+    account_id: UUID
     category_id: UUID
     type: str  # "income" | "expense"
     amount: Decimal

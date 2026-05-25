@@ -10,6 +10,7 @@ from uuid import UUID
 class TransactionDTO:
     id: UUID
     user_id: UUID
+    account_id: UUID
     category_id: UUID
     type: str
     amount: Decimal
@@ -21,6 +22,7 @@ class TransactionDTO:
 @dataclass
 class CreateTransactionDTO:
     user_id: UUID
+    account_id: UUID
     category_id: UUID
     type: str
     amount: Decimal
@@ -32,6 +34,7 @@ class CreateTransactionDTO:
 class UpdateTransactionDTO:
     transaction_id: UUID
     user_id: UUID
+    account_id: UUID | None = None
     category_id: UUID | None = None
     type: str | None = None
     amount: Decimal | None = None
