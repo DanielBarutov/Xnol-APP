@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from decimal import Decimal
+from typing import Literal
 from uuid import UUID, uuid4
 
 
@@ -11,7 +12,7 @@ class Deposit:
     bank_name: str
     amount: Decimal
     interest_rate: Decimal
-    interest_type: str  # "simple" | "compound"
+    interest_type: Literal["simple", "compound"]
     open_date: date
     close_date: date
     currency: str
@@ -19,6 +20,6 @@ class Deposit:
     auto_renew: bool
     id: UUID = field(default_factory=uuid4)
     early_closure_rate: Decimal | None = None
-    status: str = "active"  # "active" | "closed" | "early_closed"
+    status: Literal["active", "closed", "early_closed"] = "active"
     actual_close_date: date | None = None
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))

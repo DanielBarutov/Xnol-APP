@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from datetime import date
 from decimal import Decimal
+from typing import Literal
 from uuid import UUID
 
 from app.modules.deposits.domain.entities import Deposit
@@ -26,7 +27,7 @@ class IDepositRepository(ABC):
         ...
 
     @abstractmethod
-    async def close(self, deposit_id: UUID, status: str, actual_close_date: date) -> None:
+    async def close(self, deposit_id: UUID, status: Literal["closed", "early_closed"], actual_close_date: date) -> None:
         """Sets status to 'closed' or 'early_closed' and sets actual_close_date."""
         ...
 
