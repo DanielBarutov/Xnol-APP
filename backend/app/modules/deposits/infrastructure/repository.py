@@ -1,5 +1,6 @@
 from datetime import date
 from decimal import Decimal
+from typing import Literal
 from uuid import UUID
 
 from sqlalchemy import select
@@ -76,7 +77,7 @@ class SQLAlchemyDepositRepository(IDepositRepository):
         await self._session.flush()
         return _to_entity(model)
 
-    async def close(self, deposit_id: UUID, status: str, actual_close_date: date) -> None:
+    async def close(self, deposit_id: UUID, status: Literal["closed", "early_closed"], actual_close_date: date) -> None:
         result = await self._session.execute(
             select(DepositModel).where(DepositModel.id == deposit_id)
         )
