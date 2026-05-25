@@ -1,24 +1,128 @@
+import pytest
 from decimal import Decimal
 from datetime import date
 from uuid import uuid4
 
+from app.modules.deposits.application.dtos import (
+    CloseDepositDTO,
+    CreateDepositDTO,
+    UpdateDepositDTO,
+)
+from app.modules.deposits.application.use_cases import (
+    CloseDepositUseCase,
+    CreateDepositUseCase,
+    ListDepositsUseCase,
+    UpdateDepositUseCase,
+)
 from app.modules.deposits.domain.entities import Deposit
+from app.modules.deposits.infrastructure.fake_repository import FakeDepositRepository
+from app.shared.exceptions import ConflictError, NotFoundError
+
+OPEN_DATE = date(2026, 1, 1)
+CLOSE_DATE = date(2026, 7, 1)
 
 
-def test_deposit_entity_defaults() -> None:
-    d = Deposit(
-        user_id=uuid4(),
-        name="Вклад",
-        bank_name="Сбербанк",
-        amount=Decimal("100000.00"),
-        interest_rate=Decimal("0.1400"),
-        interest_type="compound",
-        open_date=date(2026, 1, 1),
-        close_date=date(2026, 7, 1),
-        currency="RUB",
-        balance=Decimal("100000.00"),
-        auto_renew=False,
+def _make_dto(user_id, **kwargs) -> CreateDepositDTO:
+    return CreateDepositDTO(
+        user_id=user_id, name="Вклад", bank_name="Сбербанк",
+        amount=Decimal("100000.00"), interest_rate=Decimal("0.1400"),
+        interest_type="compound", open_date=OPEN_DATE, close_date=CLOSE_DATE,
+        currency="RUB", balance=Decimal("100000.00"), auto_renew=False, **kwargs
     )
-    assert d.status == "active"
-    assert d.actual_close_date is None
-    assert d.early_closure_rate is None
+
+
+async def test_create_deposit() -> None:
+    repo = FakeDepositRepository()
+    dto = await CreateDepositUseCase(repo).execute(_make_dto(uuid4()))
+    assert dto.name == "Вклад"
+    assert dto.status == "active"
+    assert dto.balance == Decimal("100000.00")
+
+
+async def test_list_returns_only_active() -> None:
+    repo = FakeDepositRepository()
+    user_id = uuid4()
+    dto1 = await CreateDepositUseCase(repo).execute(_make_dto(user_id))
+    dto2 = await CreateDepositUseCase(repo).execute(_make_dto(user_id))
+    await CloseDepositUseCase(repo).execute(
+        CloseDepositDTO(deposit_id=dto2.id, user_id=user_id,
+                        close_type="closed", actual_close_date=CLOSE_DATE)
+    )
+    result = await ListDepositsUseCase(repo).execute(user_id)
+    assert len(result) == 1
+    assert result[0].id == dto1.id
+
+
+async def test_update_deposit() -> None:
+    repo = FakeDepositRepository()
+    user_id = uuid4()
+    created = await CreateDepositUseCase(repo).execute(_make_dto(user_id))
+    updated = await UpdateDepositUseCase(repo).execute(
+        UpdateDepositDTO(deposit_id=created.id, user_id=user_id,
+                         name="Новое имя", balance=Decimal("110000.00"))
+    )
+    assert updated.name == "Новое имя"
+    assert updated.balance == Decimal("110000.00")
+    assert updated.currency == "RUB"  # immutable
+
+
+async def test_close_deposit_hides_from_list() -> None:
+    repo = FakeDepositRepository()
+    user_id = uuid4()
+    created = await CreateDepositUseCase(repo).execute(_make_dto(user_id))
+    await CloseDepositUseCase(repo).execute(
+        CloseDepositDTO(deposit_id=created.id, user_id=user_id,
+                        close_type="early_closed", actual_close_date=date(2026, 4, 1))
+    )
+    result = await ListDepositsUseCase(repo).execute(user_id)
+    assert len(result) == 0
+
+
+async def test_close_already_closed_raises() -> None:
+    repo = FakeDepositRepository()
+    user_id = uuid4()
+    created = await CreateDepositUseCase(repo).execute(_make_dto(user_id))
+    await CloseDepositUseCase(repo).execute(
+        CloseDepositDTO(deposit_id=created.id, user_id=user_id,
+                        close_type="closed", actual_close_date=CLOSE_DATE)
+    )
+    with pytest.raises(ConflictError):
+        await CloseDepositUseCase(repo).execute(
+            CloseDepositDTO(deposit_id=created.id, user_id=user_id,
+                            close_type="closed", actual_close_date=CLOSE_DATE)
+        )
+
+
+async def test_update_closed_deposit_raises() -> None:
+    repo = FakeDepositRepository()
+    user_id = uuid4()
+    created = await CreateDepositUseCase(repo).execute(_make_dto(user_id))
+    await CloseDepositUseCase(repo).execute(
+        CloseDepositDTO(deposit_id=created.id, user_id=user_id,
+                        close_type="closed", actual_close_date=CLOSE_DATE)
+    )
+    with pytest.raises(ConflictError):
+        await UpdateDepositUseCase(repo).execute(
+            UpdateDepositDTO(deposit_id=created.id, user_id=user_id, name="X")
+        )
+
+
+async def test_update_other_user_deposit_raises() -> None:
+    repo = FakeDepositRepository()
+    user_a, user_b = uuid4(), uuid4()
+    created = await CreateDepositUseCase(repo).execute(_make_dto(user_a))
+    with pytest.raises(NotFoundError):
+        await UpdateDepositUseCase(repo).execute(
+            UpdateDepositDTO(deposit_id=created.id, user_id=user_b, name="X")
+        )
+
+
+async def test_close_other_user_deposit_raises() -> None:
+    repo = FakeDepositRepository()
+    user_a, user_b = uuid4(), uuid4()
+    created = await CreateDepositUseCase(repo).execute(_make_dto(user_a))
+    with pytest.raises(NotFoundError):
+        await CloseDepositUseCase(repo).execute(
+            CloseDepositDTO(deposit_id=created.id, user_id=user_b,
+                            close_type="closed", actual_close_date=CLOSE_DATE)
+        )
