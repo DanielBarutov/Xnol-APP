@@ -108,24 +108,23 @@ class GetAccountStatsUseCase:
 
     async def execute(self, user_id: UUID, date_from: date, date_to: date) -> AccountStatsDTO:
         rows = await self._repo.get_account_rows(user_id, date_from, date_to)
-        income_map: dict[UUID, tuple[str, Decimal]] = {}
+        name_map: dict[UUID, str] = {}
+        income_map: dict[UUID, Decimal] = {}
         expense_map: dict[UUID, Decimal] = {}
         for row in rows:
+            name_map[row.account_id] = row.account_name
             if row.type == "income":
-                income_map[row.account_id] = (row.account_name, income_map.get(row.account_id, ("", Decimal("0.00")))[1] + row.amount)
+                income_map[row.account_id] = income_map.get(row.account_id, Decimal("0.00")) + row.amount
             else:
                 expense_map[row.account_id] = expense_map.get(row.account_id, Decimal("0.00")) + row.amount
-        all_ids = set(income_map) | set(expense_map)
+        all_ids = sorted(set(income_map) | set(expense_map))
         accounts = []
         for acc_id in all_ids:
-            name = income_map.get(acc_id, (None,))[0] or next(
-                r.account_name for r in rows if r.account_id == acc_id
-            )
-            income = income_map.get(acc_id, ("", Decimal("0.00")))[1]
+            income = income_map.get(acc_id, Decimal("0.00"))
             expense = expense_map.get(acc_id, Decimal("0.00"))
             accounts.append(AccountStatDTO(
                 account_id=acc_id,
-                account_name=name,
+                account_name=name_map[acc_id],
                 income=income,
                 expense=expense,
                 net=income - expense,
