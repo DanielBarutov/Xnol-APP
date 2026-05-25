@@ -6,6 +6,7 @@ from app.modules.categories.presentation.router import router as categories_rout
 from app.modules.transactions.presentation.router import router as transactions_router
 from app.modules.accounts.presentation.router import router as accounts_router
 from app.modules.transfers.presentation.router import router as transfers_router
+from app.modules.deposits.presentation.router import router as deposits_router
 
 app = FastAPI(title="XNoll Finance API", version="1.0.0")
 
@@ -22,6 +23,7 @@ app.include_router(categories_router)
 app.include_router(transactions_router)
 app.include_router(accounts_router)
 app.include_router(transfers_router)
+app.include_router(deposits_router)
 
 
 @app.get("/health")

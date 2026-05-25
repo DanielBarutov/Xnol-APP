@@ -20,6 +20,9 @@ from app.modules.accounts.infrastructure.repository import SQLAlchemyAccountRepo
 from app.modules.transfers.domain.interfaces import ITransferRepository
 from app.modules.transfers.infrastructure.fake_repository import FakeTransferRepository
 from app.modules.transfers.infrastructure.repository import SQLAlchemyTransferRepository
+from app.modules.deposits.domain.interfaces import IDepositRepository
+from app.modules.deposits.infrastructure.fake_repository import FakeDepositRepository
+from app.modules.deposits.infrastructure.repository import SQLAlchemyDepositRepository
 
 _bearer = HTTPBearer()
 
@@ -28,6 +31,7 @@ _fake_category_repo = FakeCategoryRepository()
 _fake_transaction_repo = FakeTransactionRepository()
 _fake_account_repo = FakeAccountRepository()
 _fake_transfer_repo = FakeTransferRepository()
+_fake_deposit_repo = FakeDepositRepository()
 
 
 def get_user_repository(db: AsyncSession = Depends(get_db)) -> IUserRepository:
@@ -58,6 +62,12 @@ def get_transfer_repository(db: AsyncSession = Depends(get_db)) -> ITransferRepo
     if settings.use_fake_repo:
         return _fake_transfer_repo
     return SQLAlchemyTransferRepository(db)
+
+
+def get_deposit_repository(db: AsyncSession = Depends(get_db)) -> IDepositRepository:
+    if settings.use_fake_repo:
+        return _fake_deposit_repo
+    return SQLAlchemyDepositRepository(db)
 
 
 async def get_current_user_id(
