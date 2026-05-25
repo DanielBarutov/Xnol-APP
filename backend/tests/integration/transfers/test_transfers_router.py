@@ -1,0 +1,152 @@
+from uuid import uuid4
+from httpx import AsyncClient
+
+ACCOUNTS_URL = "/api/v1/accounts"
+TRANSFERS_URL = "/api/v1/transfers"
+
+
+async def _make_account(client: AsyncClient, headers: dict, balance: str = "10000.00") -> str:
+    resp = await client.post(ACCOUNTS_URL, headers=headers, json={
+        "name": "Test", "bank_name": "Bank", "currency": "RUB", "balance": balance,
+    })
+    return resp.json()["id"]
+
+
+async def test_list_requires_auth(client: AsyncClient) -> None:
+    resp = await client.get(TRANSFERS_URL)
+    assert resp.status_code == 403
+
+
+async def test_create_savings_to_savings_updates_balances(
+    client: AsyncClient, auth_headers: dict
+) -> None:
+    acc_a = await _make_account(client, auth_headers, "10000.00")
+    acc_b = await _make_account(client, auth_headers, "5000.00")
+
+    resp = await client.post(TRANSFERS_URL, headers=auth_headers, json={
+        "source_type": "savings_account", "source_id": acc_a,
+        "dest_type": "savings_account", "dest_id": acc_b,
+        "amount": "3000.00", "currency": "RUB", "date": "2026-05-24",
+    })
+    assert resp.status_code == 201
+
+    accounts = {a["id"]: a for a in (await client.get(ACCOUNTS_URL, headers=auth_headers)).json()}
+    assert accounts[acc_a]["balance"] == "7000.00"
+    assert accounts[acc_b]["balance"] == "8000.00"
+
+
+async def test_list_transfers(client: AsyncClient, auth_headers: dict) -> None:
+    acc = await _make_account(client, auth_headers, "10000.00")
+    await client.post(TRANSFERS_URL, headers=auth_headers, json={
+        "source_type": "savings_account", "source_id": acc,
+        "dest_type": "external", "dest_label": "ATM",
+        "amount": "1000.00", "currency": "RUB", "date": "2026-05-24",
+    })
+    await client.post(TRANSFERS_URL, headers=auth_headers, json={
+        "source_type": "external", "source_label": "Cash",
+        "dest_type": "savings_account", "dest_id": acc,
+        "amount": "500.00", "currency": "RUB", "date": "2026-05-25",
+    })
+    resp = await client.get(TRANSFERS_URL, headers=auth_headers)
+    assert resp.status_code == 200
+    assert len(resp.json()) == 2
+
+
+async def test_create_external_to_savings_updates_balance(
+    client: AsyncClient, auth_headers: dict
+) -> None:
+    acc = await _make_account(client, auth_headers, "5000.00")
+    await client.post(TRANSFERS_URL, headers=auth_headers, json={
+        "source_type": "external", "source_label": "Зарплата",
+        "dest_type": "savings_account", "dest_id": acc,
+        "amount": "15000.00", "currency": "RUB", "date": "2026-05-24",
+    })
+    accounts = (await client.get(ACCOUNTS_URL, headers=auth_headers)).json()
+    assert accounts[0]["balance"] == "20000.00"
+
+
+async def test_delete_transfer_reverts_balance(
+    client: AsyncClient, auth_headers: dict
+) -> None:
+    acc = await _make_account(client, auth_headers, "10000.00")
+    create_resp = await client.post(TRANSFERS_URL, headers=auth_headers, json={
+        "source_type": "savings_account", "source_id": acc,
+        "dest_type": "external", "dest_label": "ATM",
+        "amount": "3000.00", "currency": "RUB", "date": "2026-05-24",
+    })
+    transfer_id = create_resp.json()["id"]
+    await client.delete(f"{TRANSFERS_URL}/{transfer_id}", headers=auth_headers)
+
+    accounts = (await client.get(ACCOUNTS_URL, headers=auth_headers)).json()
+    assert accounts[0]["balance"] == "10000.00"
+
+
+async def test_update_transfer_changes_amount_and_balance(
+    client: AsyncClient, auth_headers: dict
+) -> None:
+    acc_a = await _make_account(client, auth_headers, "10000.00")
+    acc_b = await _make_account(client, auth_headers, "5000.00")
+    create_resp = await client.post(TRANSFERS_URL, headers=auth_headers, json={
+        "source_type": "savings_account", "source_id": acc_a,
+        "dest_type": "savings_account", "dest_id": acc_b,
+        "amount": "1000.00", "currency": "RUB", "date": "2026-05-24",
+    })
+    # A=9000, B=6000
+    transfer_id = create_resp.json()["id"]
+    resp = await client.put(f"{TRANSFERS_URL}/{transfer_id}", headers=auth_headers, json={
+        "amount": "3000.00",
+    })
+    # Reverts: A=10000, B=5000; Applies: A=7000, B=8000
+    assert resp.status_code == 200
+
+    accounts = {a["id"]: a for a in (await client.get(ACCOUNTS_URL, headers=auth_headers)).json()}
+    assert accounts[acc_a]["balance"] == "7000.00"
+    assert accounts[acc_b]["balance"] == "8000.00"
+
+
+async def test_create_with_deleted_account_returns_409(
+    client: AsyncClient, auth_headers: dict
+) -> None:
+    acc = await _make_account(client, auth_headers, "10000.00")
+    await client.delete(f"{ACCOUNTS_URL}/{acc}", headers=auth_headers)  # soft delete
+    resp = await client.post(TRANSFERS_URL, headers=auth_headers, json={
+        "source_type": "savings_account", "source_id": acc,
+        "dest_type": "external", "dest_label": "ATM",
+        "amount": "1000.00", "currency": "RUB", "date": "2026-05-24",
+    })
+    assert resp.status_code == 409
+
+
+async def test_delete_nonexistent_transfer_returns_404(
+    client: AsyncClient, auth_headers: dict
+) -> None:
+    resp = await client.delete(f"{TRANSFERS_URL}/{uuid4()}", headers=auth_headers)
+    assert resp.status_code == 404
+
+
+async def test_delete_other_user_transfer_returns_404(client: AsyncClient) -> None:
+    # Register two users
+    await client.post("/api/v1/auth/register", json={
+        "email": "user_a@example.com", "password": "pass1234",
+        "full_name": "User A", "primary_currency": "RUB",
+    })
+    resp_a = await client.post("/api/v1/auth/login", json={"email": "user_a@example.com", "password": "pass1234"})
+    headers_a = {"Authorization": f"Bearer {resp_a.json()['access_token']}"}
+
+    await client.post("/api/v1/auth/register", json={
+        "email": "user_b@example.com", "password": "pass1234",
+        "full_name": "User B", "primary_currency": "RUB",
+    })
+    resp_b = await client.post("/api/v1/auth/login", json={"email": "user_b@example.com", "password": "pass1234"})
+    headers_b = {"Authorization": f"Bearer {resp_b.json()['access_token']}"}
+
+    # user_a creates a transfer (external → external, no accounts needed)
+    create_resp = await client.post(TRANSFERS_URL, headers=headers_a, json={
+        "source_type": "external", "source_label": "A",
+        "dest_type": "external", "dest_label": "B",
+        "amount": "100.00", "currency": "RUB", "date": "2026-05-24",
+    })
+    transfer_id = create_resp.json()["id"]
+
+    resp = await client.delete(f"{TRANSFERS_URL}/{transfer_id}", headers=headers_b)
+    assert resp.status_code == 404

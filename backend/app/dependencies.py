@@ -17,6 +17,9 @@ from app.modules.transactions.infrastructure.repository import SQLAlchemyTransac
 from app.modules.accounts.domain.interfaces import IAccountRepository
 from app.modules.accounts.infrastructure.fake_repository import FakeAccountRepository
 from app.modules.accounts.infrastructure.repository import SQLAlchemyAccountRepository
+from app.modules.transfers.domain.interfaces import ITransferRepository
+from app.modules.transfers.infrastructure.fake_repository import FakeTransferRepository
+from app.modules.transfers.infrastructure.repository import SQLAlchemyTransferRepository
 
 _bearer = HTTPBearer()
 
@@ -24,6 +27,7 @@ _fake_user_repo = FakeUserRepository()
 _fake_category_repo = FakeCategoryRepository()
 _fake_transaction_repo = FakeTransactionRepository()
 _fake_account_repo = FakeAccountRepository()
+_fake_transfer_repo = FakeTransferRepository()
 
 
 def get_user_repository(db: AsyncSession = Depends(get_db)) -> IUserRepository:
@@ -48,6 +52,12 @@ def get_account_repository(db: AsyncSession = Depends(get_db)) -> IAccountReposi
     if settings.use_fake_repo:
         return _fake_account_repo
     return SQLAlchemyAccountRepository(db)
+
+
+def get_transfer_repository(db: AsyncSession = Depends(get_db)) -> ITransferRepository:
+    if settings.use_fake_repo:
+        return _fake_transfer_repo
+    return SQLAlchemyTransferRepository(db)
 
 
 async def get_current_user_id(
