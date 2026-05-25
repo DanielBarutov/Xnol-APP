@@ -150,3 +150,63 @@ async def test_delete_other_user_transfer_returns_404(client: AsyncClient) -> No
 
     resp = await client.delete(f"{TRANSFERS_URL}/{transfer_id}", headers=headers_b)
     assert resp.status_code == 404
+
+
+async def test_create_savings_to_external_updates_source_balance(
+    client: AsyncClient, auth_headers: dict
+) -> None:
+    acc = await _make_account(client, auth_headers, "8000.00")
+    resp = await client.post(TRANSFERS_URL, headers=auth_headers, json={
+        "source_type": "savings_account", "source_id": acc,
+        "dest_type": "external", "dest_label": "ATM",
+        "amount": "2000.00", "currency": "RUB", "date": "2026-05-24",
+    })
+    assert resp.status_code == 201
+    accounts = (await client.get(ACCOUNTS_URL, headers=auth_headers)).json()
+    assert accounts[0]["balance"] == "6000.00"
+
+
+async def test_create_external_to_external_no_balance_change(
+    client: AsyncClient, auth_headers: dict
+) -> None:
+    acc = await _make_account(client, auth_headers, "5000.00")
+    resp = await client.post(TRANSFERS_URL, headers=auth_headers, json={
+        "source_type": "external", "source_label": "Wallet",
+        "dest_type": "external", "dest_label": "Savings jar",
+        "amount": "500.00", "currency": "RUB", "date": "2026-05-24",
+    })
+    assert resp.status_code == 201
+    accounts = (await client.get(ACCOUNTS_URL, headers=auth_headers)).json()
+    assert accounts[0]["balance"] == "5000.00"
+
+
+async def test_create_savings_to_deposit_updates_source_only(
+    client: AsyncClient, auth_headers: dict
+) -> None:
+    acc = await _make_account(client, auth_headers, "10000.00")
+    deposit_id = str(uuid4())  # arbitrary; deposit balance not tracked here
+    resp = await client.post(TRANSFERS_URL, headers=auth_headers, json={
+        "source_type": "savings_account", "source_id": acc,
+        "dest_type": "deposit", "dest_id": deposit_id,
+        "amount": "4000.00", "currency": "RUB", "date": "2026-05-24",
+    })
+    assert resp.status_code == 201
+    accounts = (await client.get(ACCOUNTS_URL, headers=auth_headers)).json()
+    assert accounts[0]["balance"] == "6000.00"
+
+
+async def test_soft_deleted_account_transfers_remain_in_list(
+    client: AsyncClient, auth_headers: dict
+) -> None:
+    acc = await _make_account(client, auth_headers, "10000.00")
+    await client.post(TRANSFERS_URL, headers=auth_headers, json={
+        "source_type": "savings_account", "source_id": acc,
+        "dest_type": "external", "dest_label": "ATM",
+        "amount": "1000.00", "currency": "RUB", "date": "2026-05-24",
+    })
+    # Soft-delete the account
+    await client.delete(f"{ACCOUNTS_URL}/{acc}", headers=auth_headers)
+    # Transfer should still be visible
+    resp = await client.get(TRANSFERS_URL, headers=auth_headers)
+    assert resp.status_code == 200
+    assert len(resp.json()) == 1

@@ -103,8 +103,10 @@ async def update_transfer(
                 description=body.description,
             )
         )
-    except (NotFoundError, ConflictError) as exc:
+    except NotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    except ConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
     return _map_dto(dto)
 
 
