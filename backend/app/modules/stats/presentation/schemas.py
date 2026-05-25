@@ -1,5 +1,6 @@
 from datetime import date
 from decimal import Decimal
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -31,7 +32,7 @@ class TimelinePeriodResponse(BaseModel):
 class TimelineResponse(BaseModel):
     date_from: date
     date_to: date
-    granularity: str
+    granularity: Literal["month", "day"]
     periods: list[TimelinePeriodResponse]
 
 
