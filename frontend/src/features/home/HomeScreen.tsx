@@ -358,7 +358,7 @@ export function HomeScreen() {
           <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', color: COLORS.textSecondary }}>
             Последние
           </span>
-          <button style={{ background: 'none', border: 0, color: 'var(--accent)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={() => openModal('all-transactions')} style={{ background: 'none', border: 0, color: 'var(--accent)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             Все →
           </button>
         </div>
