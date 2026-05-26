@@ -26,3 +26,25 @@ html, body, #root {
 @keyframes xn-fade { from { opacity: 0 } to { opacity: 1 } }
 @keyframes xn-slide { from { transform: translateY(100%) } to { transform: translateY(0) } }
 @keyframes xn-toast { from { opacity: 0; transform: translate(-50%, 10px) } to { opacity: 1; transform: translate(-50%, 0) } }
+
+:root[data-theme="dark"] {
+  --color-bg: #04060d;
+  --color-surface: #0a0e1a;
+  --color-surface2: #131826;
+  --color-border: rgba(255,255,255,0.06);
+  --color-border-strong: rgba(255,255,255,0.10);
+  --color-text-primary: #e6e9f2;
+  --color-text-secondary: #6c7488;
+  --color-text-muted: #3e455a;
+}
+
+:root[data-theme="light"] {
+  --color-bg: #f4f6fb;
+  --color-surface: #ffffff;
+  --color-surface2: #eef0f7;
+  --color-border: rgba(0,0,0,0.08);
+  --color-border-strong: rgba(0,0,0,0.14);
+  --color-text-primary: #0d1120;
+  --color-text-secondary: #5a6275;
+  --color-text-muted: #9ca3b0;
+}
