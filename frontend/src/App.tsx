@@ -37,7 +37,13 @@ export default function App() {
     r.style.setProperty('--accent-glow', t.glow)
     r.style.setProperty('--accent-shadow', t.shadow)
     r.style.setProperty('--accent-tint', t.accent + '22')
-  }, [theme])
+    const glowColor = themeMode === 'dark' ? t.bgGlowDark : t.bgGlowLight
+    const bgBase = themeMode === 'dark' ? '#04060d' : '#f4f6fb'
+    r.style.setProperty(
+      '--bg-gradient',
+      `radial-gradient(ellipse 90% 42% at 50% -2%, ${glowColor} 0%, transparent 62%), ${bgBase}`
+    )
+  }, [theme, themeMode])
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', themeMode)
@@ -57,7 +63,7 @@ export default function App() {
 
   return (
     <DevFrame>
-      <div style={{ position: 'fixed', inset: 0, background: 'var(--color-bg)', color: 'var(--color-text-primary)', overflowY: 'auto', overflowX: 'hidden' }}>
+      <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-gradient)', color: 'var(--color-text-primary)', overflowY: 'auto', overflowX: 'hidden' }}>
         <Routes>
           <Route path="/login" element={<LoginScreen />} />
           <Route path="/register" element={<RegisterScreen />} />
