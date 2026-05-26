@@ -14,6 +14,8 @@ class UserModel(Base):
     full_name: Mapped[str] = mapped_column(String(255))
     primary_currency: Mapped[str] = mapped_column(String(3), default="RUB")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    theme_mode: Mapped[str] = mapped_column(String(10), default="dark")
+    theme_color: Mapped[str] = mapped_column(String(20), default="violet")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
