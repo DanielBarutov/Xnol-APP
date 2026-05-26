@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatAmount, formatCurrency, formatDate, categoryEmoji } from './format'
+import { formatAmount, formatCurrency, formatDate } from './format'
 
 // Note: ru-RU locale in this Node.js environment uses U+00A0 (non-breaking space)
 // as the thousands separator, not a regular space.
