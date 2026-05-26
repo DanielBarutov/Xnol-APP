@@ -11,6 +11,7 @@ export interface LoginRequest { email: string; password: string }
 // Categories
 export interface CategoryResponse { id: string; user_id: string | null; parent_id: string | null; name: string; type: string; icon: string; color: string; is_system: boolean; children: CategoryResponse[] }
 export interface CreateCategoryRequest { name: string; type: string; icon: string; color: string; parent_id?: string }
+export interface UpdateCategoryRequest { name?: string; icon?: string; color?: string }
 
 // Accounts
 export interface AccountResponse { id: string; user_id: string; name: string; bank_name: string; balance: string; currency: Currency; created_at: string }
