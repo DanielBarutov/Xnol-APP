@@ -21,6 +21,7 @@ export function CategoryManageModal() {
   const [name, setName] = useState('')
   const [icon, setIcon] = useState('Package')
   const [color, setColor] = useState('#6366f1')
+  const [parentId, setParentId] = useState<string>('')
 
   const [editing, setEditing] = useState<string | null>(null) // category id being edited
   const [editName, setEditName] = useState('')
@@ -30,7 +31,7 @@ export function CategoryManageModal() {
   const { data: categories } = useQuery({ queryKey: ['categories'], queryFn: categoriesApi.list })
 
   const mutation = useMutation({
-    mutationFn: () => categoriesApi.create({ name, type: tab, icon, color }),
+    mutationFn: () => categoriesApi.create({ name, type: tab, icon, color, parent_id: parentId || undefined }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['categories'] })
       showToast('Категория создана', COLORS.income)
@@ -38,6 +39,7 @@ export function CategoryManageModal() {
       setName('')
       setIcon('Package')
       setColor('#6366f1')
+      setParentId('')
     },
     onError: () => showToast('Ошибка', COLORS.expense),
   })
@@ -63,6 +65,7 @@ export function CategoryManageModal() {
 
   const filtered =
     categories?.flatMap(c => [c, ...(c.children ?? [])]).filter(c => c.type === tab) ?? []
+  const parentOptions = categories?.filter(c => c.type === tab && !c.parent_id) ?? []
 
   return (
     <Modal open={open} onClose={() => { setCreating(false); setEditing(null); closeModal() }}>
@@ -223,6 +226,23 @@ export function CategoryManageModal() {
           </>
         ) : (
           <>
+            {/* Parent category */}
+            {parentOptions.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={labelStyle}>Родительская категория</div>
+                <select
+                  value={parentId}
+                  onChange={e => setParentId(e.target.value)}
+                  style={{ ...inputStyle, appearance: 'none' }}
+                >
+                  <option value="">Без родительской</option>
+                  {parentOptions.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* Name input */}
             <div style={{ marginBottom: 16 }}>
               <div style={labelStyle}>Название</div>
