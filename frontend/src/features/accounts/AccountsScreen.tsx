@@ -20,11 +20,13 @@ export function AccountsScreen() {
             padding: '8px 14px', borderRadius: 12, fontSize: 13, fontWeight: 600,
             background: COLORS.surface2, border: `1px solid ${COLORS.border}`,
             color: COLORS.textSecondary, cursor: 'pointer',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.35)',
           }}>+ Счёт</button>
           <button onClick={() => openModal('create-deposit')} style={{
             padding: '8px 14px', borderRadius: 12, fontSize: 13, fontWeight: 600,
             background: COLORS.surface2, border: `1px solid ${COLORS.border}`,
             color: COLORS.textSecondary, cursor: 'pointer',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.35)',
           }}>+ Вклад</button>
           <button onClick={() => openModal('transfer')} style={{
             padding: '8px 14px', borderRadius: 12, fontSize: 13, fontWeight: 600,

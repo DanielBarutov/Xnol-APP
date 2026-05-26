@@ -303,6 +303,7 @@ export function HomeScreen() {
                   border: '1px solid rgba(255,255,255,0.08)',
                   borderRadius: 20,
                   padding: 18,
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.35)',
                 }}
               >
                 {/* Top row */}
