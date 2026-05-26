@@ -24,6 +24,7 @@ api.interceptors.response.use(
         const rt = useAuthStore.getState().refreshToken
         if (!rt) {
           useAuthStore.getState().logout()
+          window.location.replace('/login')
           return Promise.reject(error)
         }
         refreshing = axios
@@ -35,6 +36,7 @@ api.interceptors.response.use(
           })
           .catch(() => {
             useAuthStore.getState().logout()
+            window.location.replace('/login')
             throw error
           })
           .finally(() => { refreshing = null })

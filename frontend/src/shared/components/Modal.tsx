@@ -8,11 +8,20 @@ interface Props {
   children: React.ReactNode
 }
 
+let openCount = 0
+
 export function Modal({ open, onClose, children }: Props) {
   useEffect(() => {
-    if (open) document.body.style.overflow = 'hidden'
-    else document.body.style.overflow = ''
-    return () => { document.body.style.overflow = '' }
+    if (open) {
+      openCount++
+      document.body.style.overflow = 'hidden'
+    }
+    return () => {
+      if (open) {
+        openCount--
+        if (openCount === 0) document.body.style.overflow = ''
+      }
+    }
   }, [open])
 
   if (!open) return null

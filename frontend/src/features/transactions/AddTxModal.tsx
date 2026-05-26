@@ -34,7 +34,8 @@ export function AddTxModal() {
   }, [accounts.data])
 
   const accent = kind === 'income' ? COLORS.income : COLORS.expense
-  const filteredCats = categories.data?.filter(c => c.type === kind) ?? []
+  const allCats = categories.data?.flatMap(c => [c, ...(c.children ?? [])]) ?? []
+  const filteredCats = allCats.filter(c => c.type === kind)
 
   const onKey = (k: string) => {
     if (k === '←') return setAmount(a => a.slice(0, -1))
