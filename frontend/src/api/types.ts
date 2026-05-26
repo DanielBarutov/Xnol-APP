@@ -37,3 +37,7 @@ export interface TimelinePeriodResponse { period: string; income: string; expens
 export interface TimelineResponse { date_from: string; date_to: string; granularity: 'month' | 'day'; periods: TimelinePeriodResponse[] }
 export interface AccountStatResponse { account_id: string; account_name: string; income: string; expense: string; net: string }
 export interface AccountStatsResponse { date_from: string; date_to: string; accounts: AccountStatResponse[] }
+
+// Theme
+export interface ThemeResponse { theme_mode: string; theme_color: string }
+export interface ThemePatchRequest { theme_mode?: string; theme_color?: string }
