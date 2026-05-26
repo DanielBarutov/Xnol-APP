@@ -166,9 +166,9 @@ export function HomeScreen() {
         margin: '20px 20px 0',
         padding: '22px 22px 20px',
         borderRadius: 28,
-        background: 'linear-gradient(135deg, #1a1060 0%, #2d1b69 40%, #4c1d95 100%)',
-        border: '1px solid rgba(139,92,246,0.4)',
-        boxShadow: '0 20px 60px rgba(99,102,241,0.3)',
+        background: 'linear-gradient(135deg, var(--accent-bg-start) 0%, var(--accent-bg-end) 100%)',
+        border: '1px solid var(--accent)66',
+        boxShadow: '0 20px 60px var(--accent-glow)',
       }}>
         {/* Top row */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>

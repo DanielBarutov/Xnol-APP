@@ -37,6 +37,9 @@ export default function App() {
     r.style.setProperty('--accent-glow', t.glow)
     r.style.setProperty('--accent-shadow', t.shadow)
     r.style.setProperty('--accent-tint', t.accent + '22')
+    const glowBase = t.bgGlowDark.slice(0, t.bgGlowDark.lastIndexOf(','))
+    r.style.setProperty('--accent-bg-start', `${glowBase}, 0.70)`)
+    r.style.setProperty('--accent-bg-end',   `${glowBase}, 0.25)`)
     const glowColor = themeMode === 'dark' ? t.bgGlowDark : t.bgGlowLight
     const bgBase = themeMode === 'dark' ? '#04060d' : '#f4f6fb'
     r.style.setProperty(
