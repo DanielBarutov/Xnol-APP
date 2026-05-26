@@ -1,18 +1,30 @@
 import { useNavigate } from 'react-router-dom'
-import { Tag } from 'lucide-react'
+import { Tag, Sun, Moon } from 'lucide-react'
 import { useUIStore } from '../../store/ui'
 import { useAuthStore } from '../../store/auth'
 import { THEMES, COLORS } from '../../shared/tokens'
 import { Icons } from '../../shared/icons'
+import { authApi } from '../../api/endpoints/auth'
 
 export function ProfileScreen() {
-  const { theme, setTheme, balanceVisible, toggleBalance, openModal } = useUIStore()
+  const { theme, setTheme, themeMode, setThemeMode, balanceVisible, toggleBalance, openModal } = useUIStore()
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
 
   const handleLogout = () => {
     logout()
     navigate('/login', { replace: true })
+  }
+
+  const handleToggleMode = () => {
+    const next = themeMode === 'dark' ? 'light' : 'dark'
+    setThemeMode(next)
+    authApi.patchTheme({ theme_mode: next }).catch(() => {})
+  }
+
+  const handleSetTheme = (t: keyof typeof THEMES) => {
+    setTheme(t)
+    authApi.patchTheme({ theme_color: t }).catch(() => {})
   }
 
   return (
@@ -28,12 +40,28 @@ export function ProfileScreen() {
         </div>
       </div>
 
-      {/* Theme picker */}
+      {/* Appearance section */}
       <div style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: 12, color: COLORS.textSecondary, fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 12 }}>Тема</div>
+        <div style={{ fontSize: 12, color: COLORS.textSecondary, fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 12 }}>Оформление</div>
+
+        {/* Light/Dark toggle */}
+        <div style={{ background: COLORS.surface2, borderRadius: 18, overflow: 'hidden', border: `1px solid ${COLORS.border}`, marginBottom: 12 }}>
+          <button onClick={handleToggleMode} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '14px 16px', background: 'none', border: 0, cursor: 'pointer', color: COLORS.textPrimary }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {themeMode === 'dark' ? <Moon size={16} color={COLORS.textSecondary} /> : <Sun size={16} color={COLORS.textSecondary} />}
+              <span style={{ fontSize: 14, fontWeight: 600 }}>{themeMode === 'dark' ? 'Тёмная тема' : 'Светлая тема'}</span>
+            </div>
+            <div style={{ width: 44, height: 26, borderRadius: 99, background: themeMode === 'light' ? 'var(--accent)' : COLORS.border, transition: 'background 0.2s', position: 'relative' }}>
+              <div style={{ position: 'absolute', top: 3, left: themeMode === 'dark' ? 3 : 21, width: 20, height: 20, borderRadius: 99, background: '#fff', transition: 'left 0.2s' }} />
+            </div>
+          </button>
+        </div>
+
+        {/* Color theme picker */}
+        <div style={{ grid: '12px', color: COLORS.textSecondary, fontWeight: 600, fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 10 }}>Цвет</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
           {(Object.entries(THEMES) as [keyof typeof THEMES, typeof THEMES[keyof typeof THEMES]][]).map(([k, v]) => (
-            <button key={k} onClick={() => setTheme(k)} style={{
+            <button key={k} onClick={() => handleSetTheme(k)} style={{
               padding: 12, borderRadius: 16, textAlign: 'left',
               background: theme === k ? COLORS.surface2 : `${COLORS.surface}88`,
               border: `1.5px solid ${theme === k ? v.accent : COLORS.border}`,
