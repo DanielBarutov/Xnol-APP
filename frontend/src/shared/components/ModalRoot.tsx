@@ -3,6 +3,7 @@ import { TransferModal } from '../../features/accounts/TransferModal'
 import { DepositDetailModal } from '../../features/accounts/DepositDetailModal'
 import { AccountDetailModal } from '../../features/accounts/AccountDetailModal'
 import { CreateAccountModal } from '../../features/accounts/CreateAccountModal'
+import { CreateDepositModal } from '../../features/accounts/CreateDepositModal'
 
 export function ModalRoot() {
   return (
@@ -12,6 +13,7 @@ export function ModalRoot() {
       <DepositDetailModal />
       <AccountDetailModal />
       <CreateAccountModal />
+      <CreateDepositModal />
     </>
   )
 }
