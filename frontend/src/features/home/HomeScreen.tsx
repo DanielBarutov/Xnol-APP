@@ -237,30 +237,28 @@ export function HomeScreen() {
         <button
           onClick={() => openModal('add-tx', { kind: 'income' })}
           style={{
-            flex: 1, padding: '16px 0', borderRadius: 18,
+            flex: 1, padding: '12px 0', borderRadius: 18,
             background: 'rgba(52,211,153,0.12)',
             border: '1px solid rgba(52,211,153,0.3)',
             cursor: 'pointer',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+            display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
           }}
         >
-          <Plus size={22} color={COLORS.income} />
+          <Plus size={20} color={COLORS.income} />
           <span style={{ fontSize: 14, fontWeight: 700, color: COLORS.income }}>Доход</span>
-          <span style={{ fontSize: 11, color: 'rgba(52,211,153,0.65)' }}>Добавить</span>
         </button>
         <button
           onClick={() => openModal('add-tx', { kind: 'expense' })}
           style={{
-            flex: 1, padding: '16px 0', borderRadius: 18,
+            flex: 1, padding: '12px 0', borderRadius: 18,
             background: 'rgba(248,113,113,0.12)',
             border: '1px solid rgba(248,113,113,0.3)',
             cursor: 'pointer',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+            display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
           }}
         >
-          <Minus size={22} color={COLORS.expense} />
+          <Minus size={20} color={COLORS.expense} />
           <span style={{ fontSize: 14, fontWeight: 700, color: COLORS.expense }}>Расход</span>
-          <span style={{ fontSize: 11, color: 'rgba(248,113,113,0.65)' }}>Добавить</span>
         </button>
       </div>
 
