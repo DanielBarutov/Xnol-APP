@@ -14,6 +14,8 @@ def _to_entity(m: UserModel) -> User:
         primary_currency=m.primary_currency,
         password_hash=m.password_hash,
         is_active=m.is_active,
+        theme_mode=m.theme_mode,
+        theme_color=m.theme_color,
         created_at=m.created_at,
     )
 
@@ -30,6 +32,8 @@ class SQLAlchemyUserRepository(IUserRepository):
             primary_currency=user.primary_currency,
             password_hash=user.password_hash,
             is_active=user.is_active,
+            theme_mode=user.theme_mode,
+            theme_color=user.theme_color,
             created_at=user.created_at,
         )
         self._session.add(model)
@@ -63,5 +67,7 @@ class SQLAlchemyUserRepository(IUserRepository):
         model.primary_currency = user.primary_currency
         model.password_hash = user.password_hash
         model.is_active = user.is_active
+        model.theme_mode = user.theme_mode
+        model.theme_color = user.theme_color
         await self._session.flush()
         return _to_entity(model)
