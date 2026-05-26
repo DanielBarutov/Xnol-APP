@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from app.shared.base_entity import BaseEntity
 
 
@@ -9,3 +9,5 @@ class User(BaseEntity):
     primary_currency: str = "RUB"
     password_hash: str | None = None
     is_active: bool = True
+    theme_mode: str = "dark"
+    theme_color: str = "violet"
