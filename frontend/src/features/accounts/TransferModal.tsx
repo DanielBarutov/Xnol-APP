@@ -23,7 +23,10 @@ export function TransferModal() {
   }, [open])
 
   const sourceItems = sourceType === 'savings_account' ? (accounts.data ?? []) : (deposits.data ?? [])
-  const destItems = destType === 'savings_account' ? (accounts.data ?? []) : (deposits.data ?? [])
+  const rawDestItems = destType === 'savings_account' ? (accounts.data ?? []) : (deposits.data ?? [])
+  const destItems = sourceType === destType
+    ? rawDestItems.filter(item => item.id !== sourceId)
+    : rawDestItems
 
   const submit = () => {
     if (!sourceId || !destId || !parseFloat(amount)) return
@@ -84,7 +87,7 @@ export function TransferModal() {
           ))}
 
           <button onClick={() => setStep(2)} disabled={!sourceId || !destId} style={{ width: '100%', marginTop: 16, padding: 14, borderRadius: 16, fontSize: 14, fontWeight: 700, background: (sourceId && destId) ? 'linear-gradient(135deg, var(--accent), var(--accent-2))' : COLORS.surface2, color: (sourceId && destId) ? '#fff' : COLORS.textSecondary, border: 0, cursor: (sourceId && destId) ? 'pointer' : 'default' }}>
-            Далее {Icons.chev(14)}
+            Далее ›
           </button>
         </div>
       )}
