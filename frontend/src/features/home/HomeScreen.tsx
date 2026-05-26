@@ -1,6 +1,7 @@
 // frontend/src/features/home/HomeScreen.tsx
 import React, { useRef, useState } from 'react'
 import { Search, Bell, CreditCard, Plus, Minus, Eye, EyeOff } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useHomeData } from './hooks/useHomeData'
 import { useUIStore } from '../../store/ui'
 import { useAuthStore } from '../../store/auth'
@@ -50,6 +51,7 @@ function formatTxDate(isoDate: string, isoCreatedAt: string): string {
 }
 
 export function HomeScreen() {
+  const navigate = useNavigate()
   const { accounts, transactions, categories, monthStats, totalBalance } = useHomeData()
   const balanceVisible = useUIStore((s) => s.balanceVisible)
   const toggleBalance = useUIStore((s) => s.toggleBalance)
@@ -268,7 +270,7 @@ export function HomeScreen() {
           <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', color: COLORS.textSecondary }}>
             Счета
           </span>
-          <button style={{ background: 'none', border: 0, color: 'var(--accent)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={() => navigate('/accounts')} style={{ background: 'none', border: 0, color: 'var(--accent)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             Все →
           </button>
         </div>
