@@ -38,7 +38,7 @@ export function AccountsScreen() {
           <div style={{ fontSize: 12, color: COLORS.textSecondary, fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 10 }}>Накопительные счета</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
             {accounts.data?.map((a, i) => (
-              <button key={a.id} onClick={() => openModal('account-detail', { accountId: a.id })} style={{
+              <button key={a.id} onClick={() => openModal('account-edit', { accountId: a.id })} style={{
                 display: 'flex', alignItems: 'center', gap: 12,
                 padding: '14px 16px', borderRadius: 18,
                 background: COLORS.surface2, border: `1px solid ${COLORS.border}`,
