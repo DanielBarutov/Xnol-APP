@@ -43,7 +43,7 @@ export default function App() {
 
   return (
     <DevFrame>
-      <div style={{ width: '100%', height: '100%', position: 'relative', background: 'radial-gradient(ellipse at top, #11162a 0%, #060914 50%, #04060d 100%)', color: '#e6e9f2', overflowY: 'auto' }}>
+      <div style={{ position: 'fixed', inset: 0, background: 'radial-gradient(ellipse at top, #11162a 0%, #060914 50%, #04060d 100%)', color: '#e6e9f2', overflowY: 'auto', overflowX: 'hidden' }}>
         <Routes>
           <Route path="/login" element={<LoginScreen />} />
           <Route path="/register" element={<RegisterScreen />} />

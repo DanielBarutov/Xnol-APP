@@ -134,7 +134,7 @@ export function AddTxModal() {
                   color: sel ? accent : COLORS.textSecondary,
                   cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
                 }}>
-                  <span style={{ fontSize: 22 }}>{cat.icon || categoryEmoji(cat.name)}</span>
+                  <span style={{ fontSize: 22 }}>{/\p{Emoji}/u.test(cat.icon ?? '') && (cat.icon?.length ?? 0) <= 4 ? cat.icon : categoryEmoji(cat.name)}</span>
                   <span style={{ fontSize: 11, fontWeight: 600 }}>{cat.name}</span>
                 </button>
               )

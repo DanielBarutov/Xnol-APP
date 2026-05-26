@@ -14,11 +14,18 @@ export function AccountsScreen() {
     <div style={{ padding: '54px 20px 120px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div style={{ fontSize: 20, fontWeight: 800, color: COLORS.textPrimary }}>Счета</div>
-        <button onClick={() => openModal('transfer')} style={{
-          padding: '8px 14px', borderRadius: 12, fontSize: 13, fontWeight: 600,
-          background: 'var(--accent-tint)', border: '1px solid var(--accent)44',
-          color: 'var(--accent)', cursor: 'pointer',
-        }}>Перевод</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => openModal('create-account')} style={{
+            padding: '8px 14px', borderRadius: 12, fontSize: 13, fontWeight: 600,
+            background: COLORS.surface2, border: `1px solid ${COLORS.border}`,
+            color: COLORS.textSecondary, cursor: 'pointer',
+          }}>+ Счёт</button>
+          <button onClick={() => openModal('transfer')} style={{
+            padding: '8px 14px', borderRadius: 12, fontSize: 13, fontWeight: 600,
+            background: 'var(--accent-tint)', border: '1px solid var(--accent)44',
+            color: 'var(--accent)', cursor: 'pointer',
+          }}>Перевод</button>
+        </div>
       </div>
 
       {(accounts.data?.length ?? 0) > 0 && (

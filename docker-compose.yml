@@ -50,7 +50,6 @@ services:
       - /app/node_modules
     environment:
       - VITE_API_URL=http://api:8000
-      - VITE_DEV_FRAME=true
     depends_on:
       - api
 
