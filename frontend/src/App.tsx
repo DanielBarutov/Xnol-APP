@@ -15,6 +15,7 @@ import { HomeScreen } from './features/home/HomeScreen'
 import { AccountsScreen } from './features/accounts/AccountsScreen'
 import { AnalyticsScreen } from './features/analytics/AnalyticsScreen'
 import { ProfileScreen } from './features/profile/ProfileScreen'
+import type { ThemeName } from './shared/tokens'
 
 function ScreenLayout({ children }: { children: React.ReactNode }) {
   return <>{children}<BottomNav /></>
@@ -22,6 +23,9 @@ function ScreenLayout({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const theme = useUIStore((s) => s.theme)
+  const themeMode = useUIStore((s) => s.themeMode)
+  const setTheme = useUIStore((s) => s.setTheme)
+  const setThemeMode = useUIStore((s) => s.setThemeMode)
   const { accessToken, setUser } = useAuthStore()
 
   useEffect(() => {
@@ -36,14 +40,24 @@ export default function App() {
   }, [theme])
 
   useEffect(() => {
+    document.documentElement.setAttribute('data-theme', themeMode)
+  }, [themeMode])
+
+  useEffect(() => {
     if (accessToken) {
       authApi.me().then(setUser).catch(() => {})
+      authApi.getTheme().then(t => {
+        setThemeMode(t.theme_mode as 'dark' | 'light')
+        if (['violet', 'teal', 'amber', 'rose'].includes(t.theme_color)) {
+          setTheme(t.theme_color as ThemeName)
+        }
+      }).catch(() => {})
     }
   }, [accessToken])
 
   return (
     <DevFrame>
-      <div style={{ position: 'fixed', inset: 0, background: 'radial-gradient(ellipse at top, #11162a 0%, #060914 50%, #04060d 100%)', color: '#e6e9f2', overflowY: 'auto', overflowX: 'hidden' }}>
+      <div style={{ position: 'fixed', inset: 0, background: 'var(--color-bg)', color: 'var(--color-text-primary)', overflowY: 'auto', overflowX: 'hidden' }}>
         <Routes>
           <Route path="/login" element={<LoginScreen />} />
           <Route path="/register" element={<RegisterScreen />} />
