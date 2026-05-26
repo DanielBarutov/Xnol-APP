@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 30
 
     use_fake_repo: bool = False
-    cors_origins: str = "http://localhost:5173"
+    cors_origins: str = "http://localhost:5173,http://frontend:5173"
 
     @field_validator("jwt_secret_key")
     @classmethod
