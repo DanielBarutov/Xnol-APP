@@ -314,7 +314,7 @@ export function HomeScreen() {
 
                 {/* Balance */}
                 <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: -1, marginBottom: 12 }}>
-                  {balance.toLocaleString('ru-RU')} {currencySymbol}
+                  {balanceVisible ? `${balance.toLocaleString('ru-RU')} ${currencySymbol}` : '••••••'}
                 </div>
 
                 {/* Bottom */}
@@ -410,7 +410,7 @@ export function HomeScreen() {
 
                 {/* Amount */}
                 <div style={{ fontSize: 15, fontWeight: 700, color: amtColor, flexShrink: 0 }}>
-                  {amtPrefix}{amt} ₽
+                  {balanceVisible ? `${amtPrefix}${amt} ₽` : '••••••'}
                 </div>
               </div>
             )
