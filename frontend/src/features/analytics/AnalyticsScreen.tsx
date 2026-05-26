@@ -84,8 +84,8 @@ export function AnalyticsScreen() {
           <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.textPrimary, marginBottom: 12 }}>Расходы по категориям</div>
           <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
             <PieChart width={140} height={140}>
-              <Pie data={expenseData} cx={65} cy={65} innerRadius={40} outerRadius={65} dataKey="value" paddingAngle={3}>
-                {expenseData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+              <Pie data={expenseData} cx={70} cy={70} innerRadius={40} outerRadius={65} dataKey="value" paddingAngle={3}>
+                {expenseData.map((entry, i) => <Cell key={`cell-${entry.name}`} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
               </Pie>
             </PieChart>
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -101,7 +101,8 @@ export function AnalyticsScreen() {
         </div>
       )}
 
-      {categories.isLoading && <div style={{ color: COLORS.textSecondary, fontSize: 13 }}>Загрузка статистики...</div>}
+      {(categories.isLoading || timeline.isLoading) && <div style={{ color: COLORS.textSecondary, fontSize: 13 }}>Загрузка статистики...</div>}
+      {(categories.isError || timeline.isError) && <div style={{ color: COLORS.expense, fontSize: 13 }}>Ошибка загрузки</div>}
     </div>
   )
 }
