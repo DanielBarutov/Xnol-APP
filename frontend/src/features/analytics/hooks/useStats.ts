@@ -1,10 +1,12 @@
-// frontend/src/features/analytics/hooks/useStats.ts
 import { useQuery } from '@tanstack/react-query'
 import { statsApi } from '../../../api/endpoints/stats'
-import type { StatPeriod } from '../../../api/types'
+import type { StatPeriod, CustomRange } from '../../../api/types'
 
-export function useStats(period: StatPeriod) {
-  const categories = useQuery({ queryKey: ['stats', 'categories', period], queryFn: () => statsApi.categories(period) })
-  const timeline = useQuery({ queryKey: ['stats', 'timeline', period], queryFn: () => statsApi.timeline(period) })
+type PeriodOrRange = { period: StatPeriod } | CustomRange
+
+export function useStats(p: PeriodOrRange) {
+  const key = 'period' in p ? p.period : `${p.date_from}/${p.date_to}`
+  const categories = useQuery({ queryKey: ['stats', 'categories', key], queryFn: () => statsApi.categories(p) })
+  const timeline = useQuery({ queryKey: ['stats', 'timeline', key], queryFn: () => statsApi.timeline(p) })
   return { categories, timeline }
 }

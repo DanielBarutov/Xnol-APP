@@ -1,22 +1,32 @@
-// frontend/src/features/analytics/AnalyticsScreen.tsx
 import { useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts'
 import { useStats } from './hooks/useStats'
 import { formatAmount } from '../../shared/lib/format'
 import { COLORS } from '../../shared/tokens'
-import type { StatPeriod } from '../../api/types'
+import type { StatPeriod, CustomRange } from '../../api/types'
 
 const PERIODS: { value: StatPeriod; label: string }[] = [
+  { value: 'day',        label: 'День' },
   { value: 'this_month', label: 'Месяц' },
   { value: 'prev_month', label: 'Прошлый' },
-  { value: 'this_year', label: 'Год' },
+  { value: 'this_year',  label: 'Год' },
 ]
 
 const PIE_COLORS = ['#6366f1','#ec4899','#34d399','#f59e0b','#06b6d4','#a855f7','#f87171','#10b981']
 
+type ActiveTab = StatPeriod | 'custom'
+
 export function AnalyticsScreen() {
-  const [period, setPeriod] = useState<StatPeriod>('this_month')
-  const { categories, timeline } = useStats(period)
+  const [tab, setTab] = useState<ActiveTab>('this_month')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo]     = useState('')
+
+  const statsParam: { period: StatPeriod } | CustomRange =
+    tab === 'custom' && dateFrom && dateTo
+      ? { date_from: dateFrom, date_to: dateTo }
+      : { period: (tab === 'custom' ? 'this_month' : tab) as StatPeriod }
+
+  const { categories, timeline } = useStats(statsParam)
 
   const expenseData = categories.data?.expense_by_category.map(c => ({
     name: c.category_name, value: Math.abs(parseFloat(c.amount)),
@@ -33,17 +43,50 @@ export function AnalyticsScreen() {
       <div style={{ fontSize: 20, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 20 }}>Аналитика</div>
 
       {/* Period toggle */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: tab === 'custom' ? 12 : 24, flexWrap: 'wrap' }}>
         {PERIODS.map(p => (
-          <button key={p.value} onClick={() => setPeriod(p.value)} style={{
+          <button key={p.value} onClick={() => setTab(p.value)} style={{
             flex: 1, padding: '10px 0', borderRadius: 14, fontSize: 13, fontWeight: 600,
-            background: period === p.value ? 'var(--accent-tint)' : COLORS.surface2,
-            border: `1.5px solid ${period === p.value ? 'var(--accent)' : COLORS.border}`,
-            color: period === p.value ? 'var(--accent)' : COLORS.textSecondary,
+            background: tab === p.value ? 'var(--accent-tint)' : COLORS.surface2,
+            border: `1.5px solid ${tab === p.value ? 'var(--accent)' : COLORS.border}`,
+            color: tab === p.value ? 'var(--accent)' : COLORS.textSecondary,
             cursor: 'pointer',
           }}>{p.label}</button>
         ))}
+        <button onClick={() => setTab('custom')} style={{
+          flex: 1, padding: '10px 0', borderRadius: 14, fontSize: 13, fontWeight: 600,
+          background: tab === 'custom' ? 'var(--accent-tint)' : COLORS.surface2,
+          border: `1.5px solid ${tab === 'custom' ? 'var(--accent)' : COLORS.border}`,
+          color: tab === 'custom' ? 'var(--accent)' : COLORS.textSecondary,
+          cursor: 'pointer',
+        }}>Период</button>
       </div>
+
+      {/* Custom date range inputs */}
+      {tab === 'custom' && (
+        <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={e => setDateFrom(e.target.value)}
+            style={{
+              flex: 1, padding: '10px 12px', borderRadius: 14, fontSize: 13,
+              background: COLORS.surface2, border: `1px solid ${COLORS.border}`,
+              color: COLORS.textPrimary,
+            }}
+          />
+          <input
+            type="date"
+            value={dateTo}
+            onChange={e => setDateTo(e.target.value)}
+            style={{
+              flex: 1, padding: '10px 12px', borderRadius: 14, fontSize: 13,
+              background: COLORS.surface2, border: `1px solid ${COLORS.border}`,
+              color: COLORS.textPrimary,
+            }}
+          />
+        </div>
+      )}
 
       {/* Summary */}
       {categories.data && (

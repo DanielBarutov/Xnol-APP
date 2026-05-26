@@ -1,6 +1,7 @@
 export type Currency = 'RUB' | 'USD' | 'EUR'
 export type TransactionType = 'income' | 'expense'
-export type StatPeriod = 'this_month' | 'prev_month' | 'this_year'
+export type StatPeriod = 'this_month' | 'prev_month' | 'this_year' | 'day'
+export interface CustomRange { date_from: string; date_to: string }
 
 // Auth
 export interface TokenResponse { access_token: string; refresh_token: string }
