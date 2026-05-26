@@ -1,5 +1,4 @@
 .superpowers/
-docs/
 .env
 .env.*
 !.env.example
