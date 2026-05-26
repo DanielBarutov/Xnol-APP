@@ -1,3 +1,4 @@
+from typing import Optional
 from uuid import UUID
 from pydantic import BaseModel, EmailStr, Field
 
@@ -30,3 +31,13 @@ class UserResponse(BaseModel):
     full_name: str
     primary_currency: str
     is_active: bool
+
+
+class ThemeResponse(BaseModel):
+    theme_mode: str
+    theme_color: str
+
+
+class ThemePatchRequest(BaseModel):
+    theme_mode: Optional[str] = None
+    theme_color: Optional[str] = None
