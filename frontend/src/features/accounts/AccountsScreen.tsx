@@ -1,3 +1,4 @@
+import { Landmark } from 'lucide-react'
 import { useAccounts } from './hooks/useAccounts'
 import { useUIStore } from '../../store/ui'
 import { formatCurrency } from '../../shared/lib/format'
@@ -72,7 +73,7 @@ export function AccountsScreen() {
                 cursor: 'pointer', textAlign: 'left',
               }}>
                 <div style={{ width: 42, height: 42, borderRadius: 14, background: `${TAG_COLORS[(i + 2) % TAG_COLORS.length]}22`, display: 'grid', placeItems: 'center', color: TAG_COLORS[(i + 2) % TAG_COLORS.length] }}>
-                  💰
+                  <Landmark size={18} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.textPrimary }}>{d.bank_name}</div>
