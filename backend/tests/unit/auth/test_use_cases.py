@@ -2,6 +2,7 @@ import pytest
 from app.modules.auth.application.dtos import LoginUserDTO, RegisterUserDTO
 from app.modules.auth.application.use_cases import LoginUserUseCase, RegisterUserUseCase
 from app.modules.auth.infrastructure.fake_repository import FakeUserRepository
+from app.modules.categories.infrastructure.fake_repository import FakeCategoryRepository
 from app.shared.exceptions import AlreadyExistsError, AuthenticationError
 
 
@@ -10,9 +11,14 @@ def repo():
     return FakeUserRepository()
 
 
+@pytest.fixture
+def category_repo():
+    return FakeCategoryRepository()
+
+
 @pytest.mark.asyncio
-async def test_register_creates_user(repo):
-    result = await RegisterUserUseCase(repo).execute(
+async def test_register_creates_user(repo, category_repo):
+    result = await RegisterUserUseCase(repo, category_repo).execute(
         RegisterUserDTO(email="a@a.com", password="pass", full_name="Alice", primary_currency="RUB")
     )
     assert result.email == "a@a.com"
@@ -20,16 +26,16 @@ async def test_register_creates_user(repo):
 
 
 @pytest.mark.asyncio
-async def test_register_duplicate_raises(repo):
+async def test_register_duplicate_raises(repo, category_repo):
     dto = RegisterUserDTO(email="dup@a.com", password="p", full_name="D", primary_currency="RUB")
-    await RegisterUserUseCase(repo).execute(dto)
+    await RegisterUserUseCase(repo, category_repo).execute(dto)
     with pytest.raises(AlreadyExistsError):
-        await RegisterUserUseCase(repo).execute(dto)
+        await RegisterUserUseCase(repo, category_repo).execute(dto)
 
 
 @pytest.mark.asyncio
-async def test_login_returns_tokens(repo):
-    await RegisterUserUseCase(repo).execute(
+async def test_login_returns_tokens(repo, category_repo):
+    await RegisterUserUseCase(repo, category_repo).execute(
         RegisterUserDTO(email="u@u.com", password="correct", full_name="U", primary_currency="RUB")
     )
     tokens = await LoginUserUseCase(repo).execute(
@@ -41,8 +47,8 @@ async def test_login_returns_tokens(repo):
 
 
 @pytest.mark.asyncio
-async def test_login_wrong_password_raises(repo):
-    await RegisterUserUseCase(repo).execute(
+async def test_login_wrong_password_raises(repo, category_repo):
+    await RegisterUserUseCase(repo, category_repo).execute(
         RegisterUserDTO(email="x@x.com", password="right", full_name="X", primary_currency="RUB")
     )
     with pytest.raises(AuthenticationError):

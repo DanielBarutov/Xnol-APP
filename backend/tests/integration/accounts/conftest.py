@@ -1,9 +1,10 @@
 import pytest
 from httpx import ASGITransport, AsyncClient
 from app.main import app
-from app.dependencies import get_user_repository, get_account_repository
+from app.dependencies import get_user_repository, get_account_repository, get_category_repository
 from app.modules.auth.infrastructure.fake_repository import FakeUserRepository
 from app.modules.accounts.infrastructure.fake_repository import FakeAccountRepository
+from app.modules.categories.infrastructure.fake_repository import FakeCategoryRepository
 
 
 @pytest.fixture
@@ -16,6 +17,7 @@ async def client(fake_account_repo):
     fresh_user_repo = FakeUserRepository()
     app.dependency_overrides[get_user_repository] = lambda: fresh_user_repo
     app.dependency_overrides[get_account_repository] = lambda: fake_account_repo
+    app.dependency_overrides[get_category_repository] = lambda: FakeCategoryRepository()
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.clear()
