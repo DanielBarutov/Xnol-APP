@@ -38,14 +38,14 @@ export const THEMES: Record<ThemeName, Theme> = {
 }
 
 export const COLORS = {
-  bg: '#04060d',
-  surface: '#0a0e1a',
-  surface2: '#131826',
-  border: 'rgba(255,255,255,0.06)',
-  borderStrong: 'rgba(255,255,255,0.10)',
-  textPrimary: '#e6e9f2',
-  textSecondary: '#6c7488',
-  textMuted: '#3e455a',
+  bg: 'var(--color-bg)',
+  surface: 'var(--color-surface)',
+  surface2: 'var(--color-surface2)',
+  border: 'var(--color-border)',
+  borderStrong: 'var(--color-border-strong)',
+  textPrimary: 'var(--color-text-primary)',
+  textSecondary: 'var(--color-text-secondary)',
+  textMuted: 'var(--color-text-muted)',
   income: '#34d399',
   expense: '#f87171',
 }
