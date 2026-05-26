@@ -32,7 +32,7 @@ class SQLAlchemyCategoryRepository(ICategoryRepository):
         result = await self._session.execute(
             select(CategoryModel).where(
                 CategoryModel.deleted_at.is_(None),
-                (CategoryModel.user_id.is_(None)) | (CategoryModel.user_id == user_id),
+                CategoryModel.user_id == user_id,
             )
         )
         return [_to_entity(m) for m in result.scalars().all()]
