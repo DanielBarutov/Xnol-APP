@@ -1,10 +1,11 @@
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
-from app.dependencies import get_current_user_id, get_user_repository
+from app.dependencies import get_current_user_id, get_user_repository, get_category_repository
 from app.modules.auth.application.dtos import LoginUserDTO, RegisterUserDTO
 from app.modules.auth.application.services import JWTService
 from app.modules.auth.application.use_cases import LoginUserUseCase, RegisterUserUseCase
 from app.modules.auth.domain.interfaces import IUserRepository
+from app.modules.categories.domain.interfaces import ICategoryRepository
 from app.modules.auth.presentation.schemas import (
     LoginRequest,
     RefreshRequest,
@@ -21,9 +22,10 @@ router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 async def register(
     body: RegisterRequest,
     repo: IUserRepository = Depends(get_user_repository),
+    category_repo: ICategoryRepository = Depends(get_category_repository),
 ) -> UserResponse:
     try:
-        dto = await RegisterUserUseCase(repo).execute(
+        dto = await RegisterUserUseCase(repo, category_repo).execute(
             RegisterUserDTO(
                 email=body.email,
                 password=body.password,
