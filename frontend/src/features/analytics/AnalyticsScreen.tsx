@@ -70,6 +70,7 @@ export function AnalyticsScreen() {
               <Tooltip
                 contentStyle={{ background: COLORS.surface2, border: `1px solid ${COLORS.border}`, borderRadius: 10, fontSize: 12 }}
                 formatter={(v) => typeof v === 'number' ? `${formatAmount(v)} ₽` : String(v)}
+                cursor={{ fill: 'rgba(255,255,255,0.05)' }}
               />
               <Bar dataKey="income" fill={COLORS.income} radius={[6,6,0,0]} maxBarSize={24} name="Доход" />
               <Bar dataKey="expense" fill={COLORS.expense} radius={[6,6,0,0]} maxBarSize={24} name="Расход" />
