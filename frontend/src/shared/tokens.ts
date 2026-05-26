@@ -1,0 +1,51 @@
+export type ThemeName = 'violet' | 'teal' | 'amber' | 'rose'
+
+export interface Theme {
+  name: string
+  accent: string
+  accent2: string
+  accent3: string
+  glow: string
+  shadow: string
+  swatches: [string, string, string]
+}
+
+export const THEMES: Record<ThemeName, Theme> = {
+  violet: {
+    name: 'Violet',
+    swatches: ['#6366f1', '#8b5cf6', '#a855f7'],
+    accent: '#6366f1', accent2: '#8b5cf6', accent3: '#a855f7',
+    glow: 'rgba(99,102,241,0.20)', shadow: 'rgba(99,102,241,0.45)',
+  },
+  teal: {
+    name: 'Teal',
+    swatches: ['#0f766e', '#14b8a6', '#06b6d4'],
+    accent: '#14b8a6', accent2: '#0d9488', accent3: '#06b6d4',
+    glow: 'rgba(20,184,166,0.18)', shadow: 'rgba(20,184,166,0.45)',
+  },
+  amber: {
+    name: 'Amber',
+    swatches: ['#f59e0b', '#f97316', '#fbbf24'],
+    accent: '#f59e0b', accent2: '#f97316', accent3: '#fbbf24',
+    glow: 'rgba(245,158,11,0.18)', shadow: 'rgba(245,158,11,0.45)',
+  },
+  rose: {
+    name: 'Rose',
+    swatches: ['#e11d48', '#ec4899', '#f43f5e'],
+    accent: '#e11d48', accent2: '#ec4899', accent3: '#f43f5e',
+    glow: 'rgba(236,72,153,0.18)', shadow: 'rgba(236,72,153,0.45)',
+  },
+}
+
+export const COLORS = {
+  bg: '#04060d',
+  surface: '#0a0e1a',
+  surface2: '#131826',
+  border: 'rgba(255,255,255,0.06)',
+  borderStrong: 'rgba(255,255,255,0.10)',
+  textPrimary: '#e6e9f2',
+  textSecondary: '#6c7488',
+  textMuted: '#3e455a',
+  income: '#34d399',
+  expense: '#f87171',
+}
