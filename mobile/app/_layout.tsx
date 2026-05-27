@@ -7,6 +7,8 @@ import { ThemeProvider } from '../theme/ThemeProvider'
 import { useAuthStore } from '../store/auth'
 import { useUIStore } from '../store/ui'
 import { initApiClient, authApi } from '@xnoll/shared'
+import { SheetManager } from '../components/SheetManager'
+import { Toast } from '../components/Toast'
 
 // Called once at module evaluation time — before any component mounts
 initApiClient({
@@ -59,6 +61,8 @@ export default function RootLayout() {
           <ThemeProvider>
             <AuthGuard />
             <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
+            <SheetManager />
+            <Toast />
           </ThemeProvider>
         </QueryClientProvider>
       </SafeAreaProvider>
