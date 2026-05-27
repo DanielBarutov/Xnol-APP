@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { ScrollView, View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { CartesianChart, Bar, PolarChart, Pie } from 'victory-native'
@@ -16,6 +16,11 @@ const PERIODS: { value: StatPeriod; label: string }[] = [
 
 const PIE_COLORS = ['#6366f1','#ec4899','#34d399','#f59e0b','#06b6d4','#a855f7','#f87171','#10b981']
 
+function num(s?: string): number {
+  const n = parseFloat(s ?? '0')
+  return Number.isFinite(n) ? n : 0
+}
+
 export function AnalyticsScreen() {
   const colors = useTheme()
   const insets = useSafeAreaInsets()
@@ -23,25 +28,32 @@ export function AnalyticsScreen() {
 
   const { categories, timeline } = useStats({ period })
 
-  const expenseData = (categories.data?.expense_by_category ?? [])
-    .map((c, i) => ({
-      label: c.category_name,
-      value: Math.abs(parseFloat(c.amount)),
-      color: PIE_COLORS[i % PIE_COLORS.length],
-    }))
-    .filter(d => d.value > 0)
+  const expenseData = useMemo(() =>
+    (categories.data?.expense_by_category ?? [])
+      .filter(c => num(c.amount) > 0)
+      .map((c, i) => ({
+        label: c.category_name,
+        value: Math.abs(num(c.amount)),
+        color: PIE_COLORS[i % PIE_COLORS.length],
+      })),
+    [categories.data],
+  )
 
-  const timelineData = (timeline.data?.periods ?? []).map(p => ({
-    period: p.period.slice(-5),
-    income: parseFloat(p.income),
-    expense: Math.abs(parseFloat(p.expense)),
-  }))
+  const timelineData = useMemo(() =>
+    (timeline.data?.periods ?? []).map(p => ({
+      period: p.period.slice(-5),
+      income: num(p.income),
+      expense: Math.abs(num(p.expense)),
+    })),
+    [timeline.data],
+  )
 
-  const totalIncome  = parseFloat(categories.data?.total_income  ?? '0')
-  const totalExpense = Math.abs(parseFloat(categories.data?.total_expense ?? '0'))
+  const totalIncome  = useMemo(() => num(categories.data?.total_income),          [categories.data])
+  const totalExpense = useMemo(() => Math.abs(num(categories.data?.total_expense)), [categories.data])
   const net = totalIncome - totalExpense
 
   const isLoading = categories.isLoading || timeline.isLoading
+  const isError   = categories.isError   || timeline.isError
 
   return (
     <ScrollView
@@ -65,7 +77,19 @@ export function AnalyticsScreen() {
 
       {isLoading && <ActivityIndicator color={colors.accent} style={{ marginTop: 40 }} />}
 
-      {!isLoading && (
+      {isError && (
+        <View style={{ padding: 32, alignItems: 'center' }}>
+          <Text style={{ color: colors.expense, fontSize: 14, marginBottom: 12 }}>Ошибка загрузки статистики</Text>
+          <TouchableOpacity
+            onPress={() => { categories.refetch(); timeline.refetch() }}
+            style={{ paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: colors.accentTint }}
+          >
+            <Text style={{ color: colors.accent, fontWeight: '600' }}>Повторить</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {!isLoading && !isError && (
         <>
           {/* Summary cards */}
           <View style={styles.summaryRow}>
@@ -85,8 +109,12 @@ export function AnalyticsScreen() {
             </Text>
           </View>
 
+          {timelineData.length === 0 && expenseData.length === 0 && (
+            <Text style={{ color: colors.textMuted, fontSize: 13, textAlign: 'center', marginTop: 20 }}>Нет данных за период</Text>
+          )}
+
           {/* Timeline bar chart */}
-          {timelineData.length > 1 && (
+          {timelineData.length > 0 && (
             <>
               <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Динамика</Text>
               <View style={{ height: 220 }}>
@@ -137,8 +165,8 @@ export function AnalyticsScreen() {
                   <Pie.Chart innerRadius="40%" />
                 </PolarChart>
               </View>
-              {expenseData.map((d, i) => (
-                <View key={i} style={styles.legendRow}>
+              {expenseData.map((d) => (
+                <View key={d.label} style={styles.legendRow}>
                   <View style={[styles.legendDot, { backgroundColor: d.color }]} />
                   <Text style={[styles.legendName, { color: colors.textSecondary }]}>{d.label}</Text>
                   <Text style={[styles.legendVal, { color: colors.textPrimary }]}>{formatAmount(d.value)} ₽</Text>
