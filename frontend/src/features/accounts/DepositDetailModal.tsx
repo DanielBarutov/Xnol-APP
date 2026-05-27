@@ -28,10 +28,11 @@ export function DepositDetailModal() {
   const open = modal.type === 'deposit-detail'
   const depositId = (modal.payload as { depositId?: string })?.depositId
 
-  const { data } = useQuery({
+  const { data, isError, isLoading } = useQuery({
     queryKey: ['deposits', depositId],
     queryFn: () => depositsApi.get(depositId!),
     enabled: open && !!depositId,
+    retry: 1,
   })
 
   const rows = data ? [
@@ -83,7 +84,12 @@ export function DepositDetailModal() {
             )}
           </>
         )}
-        {!data && <div style={{ color: COLORS.textSecondary }}>Загрузка...</div>}
+        {isLoading && (
+          <div style={{ color: COLORS.textSecondary, fontSize: 13 }}>Загрузка...</div>
+        )}
+        {isError && (
+          <div style={{ color: COLORS.expense, fontSize: 13 }}>Не удалось загрузить детали вклада</div>
+        )}
       </div>
     </Modal>
   )
