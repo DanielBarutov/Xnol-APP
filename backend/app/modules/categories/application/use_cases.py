@@ -100,8 +100,6 @@ class DeleteCategoryUseCase:
         cat = await self._repo.find_by_id(category_id)
         if cat is None:
             raise NotFoundError("Category", str(category_id))
-        if cat.is_system:
-            raise AuthorizationError("Cannot delete system category")
         if cat.user_id != user_id:
             raise AuthorizationError()
         if await self._repo.has_active_children(category_id):

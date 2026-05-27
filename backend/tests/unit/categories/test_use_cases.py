@@ -120,6 +120,18 @@ async def test_delete_system_category_raises(repo, user_id, system_cat):
 
 
 @pytest.mark.asyncio
+async def test_delete_user_owned_system_category_succeeds(repo, user_id):
+    user_sys_cat = Category(
+        name="Зарплата", type="income", icon="Briefcase", color="#22c55e",
+        user_id=user_id, is_system=True,
+    )
+    await repo.create(user_sys_cat)
+    await DeleteCategoryUseCase(repo).execute(user_sys_cat.id, user_id)
+    cat = await repo.find_by_id(user_sys_cat.id)
+    assert cat.deleted_at is not None
+
+
+@pytest.mark.asyncio
 async def test_delete_with_children_raises(repo, user_id, user_cat):
     child = Category(name="Child", type="expense", icon="x", color="#fff",
                      user_id=user_id, parent_id=user_cat.id)

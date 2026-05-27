@@ -135,6 +135,19 @@ async def test_delete_system_category_returns_403(
     assert resp.status_code == 403
 
 
+async def test_delete_user_owned_system_category_returns_204(
+    client: AsyncClient,
+    auth_headers: dict,
+) -> None:
+    # registration seeds user-owned is_system=True categories
+    resp = await client.get(CATEGORIES_URL, headers=auth_headers)
+    system_cats = [c for c in resp.json() if c["is_system"]]
+    assert len(system_cats) > 0, "registration must seed system categories"
+    cat_id = system_cats[0]["id"]
+    resp = await client.delete(f"{CATEGORIES_URL}/{cat_id}", headers=auth_headers)
+    assert resp.status_code == 204
+
+
 async def test_delete_category_with_transactions_returns_409(
     client: AsyncClient,
     auth_headers: dict,
