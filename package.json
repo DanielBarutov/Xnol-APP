@@ -1,0 +1,8 @@
+{
+  "name": "xnoll-monorepo",
+  "private": true,
+  "workspaces": [
+    "shared",
+    "frontend"
+  ]
+}
