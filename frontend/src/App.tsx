@@ -41,7 +41,7 @@ export default function App() {
     r.style.setProperty('--accent-bg-start', `${glowBase}, 0.70)`)
     r.style.setProperty('--accent-bg-end',   `${glowBase}, 0.25)`)
     const glowColor = themeMode === 'dark' ? t.bgGlowDark : t.bgGlowLight
-    const bgBase = themeMode === 'dark' ? '#04060d' : '#f4f6fb'
+    const bgBase = themeMode === 'dark' ? '#12151f' : '#f4f6fb'
     r.style.setProperty(
       '--bg-gradient',
       `radial-gradient(ellipse 90% 42% at 50% -2%, ${glowColor} 0%, transparent 62%), ${bgBase}`
