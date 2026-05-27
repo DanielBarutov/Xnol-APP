@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { ThemeName } from '../shared/tokens'
 
-type ModalType = 'add-tx' | 'transfer' | 'deposit-detail' | 'account-detail' | 'account-edit' | 'create-account' | 'create-deposit' | 'categories' | 'all-transactions' | null
+type ModalType = 'add-tx' | 'transfer' | 'deposit-detail' | 'account-detail' | 'account-edit' | 'create-account' | 'create-deposit' | 'categories' | 'all-transactions' | 'transaction-detail' | null
 
 interface UIState {
   modal: { type: ModalType; payload?: unknown }

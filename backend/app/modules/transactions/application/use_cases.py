@@ -58,6 +58,17 @@ async def _validate_account(
         raise ConflictError("Account is deleted")
 
 
+class GetTransactionUseCase:
+    def __init__(self, repo: ITransactionRepository) -> None:
+        self._repo = repo
+
+    async def execute(self, transaction_id: UUID, user_id: UUID) -> TransactionDTO:
+        txn = await self._repo.find_by_id(transaction_id)
+        if txn is None or txn.user_id != user_id:
+            raise NotFoundError("Transaction", str(transaction_id))
+        return _to_dto(txn)
+
+
 class ListTransactionsUseCase:
     def __init__(self, repo: ITransactionRepository) -> None:
         self._repo = repo

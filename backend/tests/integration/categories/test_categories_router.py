@@ -148,7 +148,7 @@ async def test_delete_user_owned_system_category_returns_204(
     assert resp.status_code == 204
 
 
-async def test_delete_category_with_transactions_returns_409(
+async def test_delete_category_with_transactions_returns_204(
     client: AsyncClient,
     auth_headers: dict,
     fake_category_repo: FakeCategoryRepository,
@@ -160,7 +160,7 @@ async def test_delete_category_with_transactions_returns_409(
     from uuid import UUID
     fake_category_repo._transaction_counts[UUID(cat_id)] = 1
     resp = await client.delete(f"{CATEGORIES_URL}/{cat_id}", headers=auth_headers)
-    assert resp.status_code == 409
+    assert resp.status_code == 204
 
 
 async def test_deleted_category_excluded_from_list(client: AsyncClient, auth_headers: dict) -> None:

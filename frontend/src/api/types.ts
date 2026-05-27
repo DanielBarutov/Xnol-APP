@@ -21,6 +21,7 @@ export interface CreateAccountRequest { name: string; bank_name: string; currenc
 // Deposits
 export interface DepositResponse { id: string; user_id: string; name: string; bank_name: string; amount: string; interest_rate: string; interest_type: 'simple' | 'compound'; open_date: string; close_date: string; currency: Currency; auto_renew: boolean; early_closure_rate: string | null; balance: string; status: string; created_at: string }
 export interface CreateDepositRequest { name: string; bank_name: string; amount: string; interest_rate: string; interest_type: 'simple' | 'compound'; open_date: string; close_date: string; currency: Currency; auto_renew: boolean; early_closure_rate?: string }
+export interface UpdateDepositRequest { name?: string; bank_name?: string; amount?: string; interest_rate?: string; interest_type?: 'simple' | 'compound'; open_date?: string; close_date?: string; auto_renew?: boolean; balance?: string }
 
 // Transactions
 export interface TransactionResponse { id: string; user_id: string; account_id: string; category_id: string; type: TransactionType; amount: string; date: string; description: string | null; created_at: string }

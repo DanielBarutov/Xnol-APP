@@ -141,10 +141,11 @@ async def test_delete_with_children_raises(repo, user_id, user_cat):
 
 
 @pytest.mark.asyncio
-async def test_delete_with_transactions_raises(repo, user_id, user_cat):
+async def test_delete_with_transactions_succeeds(repo, user_id, user_cat):
     repo._transaction_counts[user_cat.id] = 3
-    with pytest.raises(ConflictError):
-        await DeleteCategoryUseCase(repo).execute(user_cat.id, user_id)
+    await DeleteCategoryUseCase(repo).execute(user_cat.id, user_id)
+    cat = await repo.find_by_id(user_cat.id)
+    assert cat.deleted_at is not None
 
 
 @pytest.mark.asyncio

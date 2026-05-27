@@ -370,9 +370,14 @@ export function HomeScreen() {
           <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', color: COLORS.textSecondary }}>
             Последние
           </span>
-          <button onClick={() => openModal('all-transactions')} style={{ background: 'none', border: 0, color: 'var(--accent)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-            Все →
-          </button>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <button onClick={() => openModal('all-transactions')} style={{ background: 'none', border: 0, color: 'var(--accent)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+              Все →
+            </button>
+            <button onClick={() => openModal('all-transactions')} style={{ background: 'var(--accent-tint)', border: `1px solid var(--accent)44`, borderRadius: 10, color: 'var(--accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: '4px 10px' }}>
+              Фильтр
+            </button>
+          </div>
         </div>
 
         <div style={{ padding: '0 20px' }}>
@@ -394,7 +399,7 @@ export function HomeScreen() {
               const direction = isIncome ? `${catName} → ${accName}` : `${accName} → ${catName}`
 
               return (
-                <div key={`tx-${tx.id}`} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: `1px solid ${COLORS.border}` }}>
+                <div key={`tx-${tx.id}`} onClick={() => openModal('transaction-detail', { tx, categoryName: catName, accountName: accName })} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: `1px solid ${COLORS.border}`, cursor: 'pointer' }}>
                   <div style={{ width: 40, height: 40, borderRadius: 14, background: `${catColor}22`, border: `1px solid ${catColor}44`, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
                     <DynIcon name={iconName} size={18} color={catColor} />
                   </div>

@@ -104,6 +104,4 @@ class DeleteCategoryUseCase:
             raise AuthorizationError()
         if await self._repo.has_active_children(category_id):
             raise ConflictError("Category has subcategories -- delete them first")
-        if await self._repo.count_transactions(category_id) > 0:
-            raise ConflictError("Category is used by transactions")
         await self._repo.soft_delete(category_id, datetime.now(timezone.utc))

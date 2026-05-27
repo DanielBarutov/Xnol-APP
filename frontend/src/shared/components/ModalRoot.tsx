@@ -1,5 +1,6 @@
 import { AddTxModal } from '../../features/transactions/AddTxModal'
 import { AllTransactionsModal } from '../../features/transactions/AllTransactionsModal'
+import { TransactionDetailModal } from '../../features/transactions/TransactionDetailModal'
 import { TransferModal } from '../../features/accounts/TransferModal'
 import { DepositDetailModal } from '../../features/accounts/DepositDetailModal'
 import { AccountDetailModal } from '../../features/accounts/AccountDetailModal'
@@ -13,6 +14,7 @@ export function ModalRoot() {
     <>
       <AddTxModal />
       <AllTransactionsModal />
+      <TransactionDetailModal />
       <TransferModal />
       <DepositDetailModal />
       <AccountDetailModal />
