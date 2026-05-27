@@ -6,11 +6,13 @@ from app.dependencies import get_current_user_id, get_deposit_repository
 from app.modules.deposits.application.dtos import (
     CloseDepositDTO,
     CreateDepositDTO,
+    GetDepositDTO,
     UpdateDepositDTO,
 )
 from app.modules.deposits.application.use_cases import (
     CloseDepositUseCase,
     CreateDepositUseCase,
+    GetDepositUseCase,
     ListDepositsUseCase,
     UpdateDepositUseCase,
 )
@@ -62,6 +64,21 @@ async def create_deposit(
             auto_renew=body.auto_renew, early_closure_rate=body.early_closure_rate,
         )
     )
+    return _map_dto(dto)
+
+
+@router.get("/{deposit_id}", response_model=DepositResponse)
+async def get_deposit(
+    deposit_id: UUID,
+    user_id: UUID = Depends(get_current_user_id),
+    repo: IDepositRepository = Depends(get_deposit_repository),
+) -> DepositResponse:
+    try:
+        dto = await GetDepositUseCase(repo).execute(
+            GetDepositDTO(deposit_id=deposit_id, user_id=user_id)
+        )
+    except NotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
     return _map_dto(dto)
 
 

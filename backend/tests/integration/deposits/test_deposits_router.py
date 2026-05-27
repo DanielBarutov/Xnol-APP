@@ -110,6 +110,42 @@ async def test_close_nonexistent_returns_404(client: AsyncClient, auth_headers: 
     assert resp.status_code == 404
 
 
+async def test_get_deposit_by_id_returns_200(client: AsyncClient, auth_headers: dict) -> None:
+    create_resp = await client.post(DEPOSITS_URL, headers=auth_headers, json=VALID_PAYLOAD)
+    deposit_id = create_resp.json()["id"]
+    resp = await client.get(f"{DEPOSITS_URL}/{deposit_id}", headers=auth_headers)
+    assert resp.status_code == 200
+    assert resp.json()["id"] == deposit_id
+    assert resp.json()["name"] == VALID_PAYLOAD["name"]
+
+
+async def test_get_deposit_not_found_returns_404(client: AsyncClient, auth_headers: dict) -> None:
+    resp = await client.get(f"{DEPOSITS_URL}/{uuid4()}", headers=auth_headers)
+    assert resp.status_code == 404
+
+
+async def test_get_deposit_wrong_user_returns_404(client: AsyncClient) -> None:
+    await client.post("/api/v1/auth/register", json={
+        "email": "get_u_a@example.com", "password": "pass1234",
+        "full_name": "A", "primary_currency": "RUB",
+    })
+    resp_a = await client.post("/api/v1/auth/login", json={"email": "get_u_a@example.com", "password": "pass1234"})
+    headers_a = {"Authorization": f"Bearer {resp_a.json()['access_token']}"}
+
+    await client.post("/api/v1/auth/register", json={
+        "email": "get_u_b@example.com", "password": "pass1234",
+        "full_name": "B", "primary_currency": "RUB",
+    })
+    resp_b = await client.post("/api/v1/auth/login", json={"email": "get_u_b@example.com", "password": "pass1234"})
+    headers_b = {"Authorization": f"Bearer {resp_b.json()['access_token']}"}
+
+    create_resp = await client.post(DEPOSITS_URL, headers=headers_a, json=VALID_PAYLOAD)
+    deposit_id = create_resp.json()["id"]
+
+    resp = await client.get(f"{DEPOSITS_URL}/{deposit_id}", headers=headers_b)
+    assert resp.status_code == 404
+
+
 async def test_close_other_user_deposit_returns_404(client: AsyncClient) -> None:
     await client.post("/api/v1/auth/register", json={
         "email": "user_a@example.com", "password": "pass1234",

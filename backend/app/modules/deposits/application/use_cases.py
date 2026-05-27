@@ -4,6 +4,7 @@ from app.modules.deposits.application.dtos import (
     CloseDepositDTO,
     CreateDepositDTO,
     DepositDTO,
+    GetDepositDTO,
     UpdateDepositDTO,
 )
 from app.modules.deposits.domain.entities import Deposit
@@ -28,6 +29,17 @@ class ListDepositsUseCase:
 
     async def execute(self, user_id: UUID) -> list[DepositDTO]:
         return [_to_dto(d) for d in await self._repo.list_for_user(user_id)]
+
+
+class GetDepositUseCase:
+    def __init__(self, repo: IDepositRepository) -> None:
+        self._repo = repo
+
+    async def execute(self, dto: GetDepositDTO) -> DepositDTO:
+        deposit = await self._repo.find_by_id(dto.deposit_id)
+        if deposit is None or deposit.user_id != dto.user_id:
+            raise NotFoundError("Deposit", str(dto.deposit_id))
+        return _to_dto(deposit)
 
 
 class CreateDepositUseCase:
