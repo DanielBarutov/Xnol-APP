@@ -13,9 +13,11 @@ interface AuthState {
   accessToken: string | null
   refreshToken: string | null
   user: UserResponse | null
+  _hasHydrated: boolean
   setTokens: (access: string, refresh: string) => void
   setUser: (user: UserResponse) => void
   logout: () => void
+  setHasHydrated: (v: boolean) => void
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -24,14 +26,19 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
       refreshToken: null,
       user: null,
+      _hasHydrated: false,
       setTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
       setUser: (user) => set({ user }),
       logout: () => set({ accessToken: null, refreshToken: null, user: null }),
+      setHasHydrated: (v) => set({ _hasHydrated: v }),
     }),
     {
       name: 'xnoll-auth',
       storage: createJSONStorage(() => secureStorage),
       partialize: (s) => ({ accessToken: s.accessToken, refreshToken: s.refreshToken }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true)
+      },
     },
   ),
 )

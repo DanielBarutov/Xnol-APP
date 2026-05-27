@@ -7,7 +7,15 @@ import { ThemeProvider } from '../theme/ThemeProvider'
 import { useAuthStore } from '../store/auth'
 import { useUIStore } from '../store/ui'
 import { initApiClient, authApi } from '@xnoll/shared'
-import Constants from 'expo-constants'
+
+// Called once at module evaluation time — before any component mounts
+initApiClient({
+  baseURL: process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000',
+  getAccessToken: () => useAuthStore.getState().accessToken,
+  getRefreshToken: () => useAuthStore.getState().refreshToken,
+  setTokens: (a, r) => useAuthStore.getState().setTokens(a, r),
+  onLogout: () => useAuthStore.getState().logout(),
+})
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
@@ -15,6 +23,7 @@ const queryClient = new QueryClient({
 
 function AuthGuard() {
   const accessToken = useAuthStore((s) => s.accessToken)
+  const hasHydrated = useAuthStore((s) => s._hasHydrated)
   const setUser = useAuthStore((s) => s.setUser)
   const setTheme = useUIStore((s) => s.setTheme)
   const setThemeMode = useUIStore((s) => s.setThemeMode)
@@ -22,10 +31,11 @@ function AuthGuard() {
   const router = useRouter()
 
   useEffect(() => {
+    if (!hasHydrated) return  // wait for SecureStore to rehydrate
     const inAuth = segments[0] === '(auth)'
     if (!accessToken && !inAuth) router.replace('/(auth)/login')
     else if (accessToken && inAuth) router.replace('/(tabs)/')
-  }, [accessToken, segments])
+  }, [accessToken, segments, hasHydrated])
 
   useEffect(() => {
     if (!accessToken) return
@@ -42,21 +52,6 @@ function AuthGuard() {
 }
 
 export default function RootLayout() {
-  useEffect(() => {
-    const baseURL =
-      Constants.expoConfig?.extra?.apiUrl ??
-      process.env.EXPO_PUBLIC_API_URL ??
-      'http://localhost:8000'
-
-    initApiClient({
-      baseURL,
-      getAccessToken: () => useAuthStore.getState().accessToken,
-      getRefreshToken: () => useAuthStore.getState().refreshToken,
-      setTokens: (a, r) => useAuthStore.getState().setTokens(a, r),
-      onLogout: () => useAuthStore.getState().logout(),
-    })
-  }, [])
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>

@@ -28,7 +28,7 @@ export function BottomTabBar() {
       {TABS.slice(0, 2).map(({ href, label, Icon }) => {
         const active = pathname === href || (href === '/' && pathname === '')
         return (
-          <TouchableOpacity key={href} style={styles.tab} onPress={() => router.push(href as any)}>
+          <TouchableOpacity key={href} style={styles.tab} onPress={() => router.navigate(href as any)}>
             <View style={[styles.pill, active && { backgroundColor: colors.accentTint }]}>
               <Icon size={20} color={active ? colors.accent : colors.textMuted} />
             </View>
@@ -46,7 +46,7 @@ export function BottomTabBar() {
       {TABS.slice(2).map(({ href, label, Icon }) => {
         const active = pathname === href
         return (
-          <TouchableOpacity key={href} style={styles.tab} onPress={() => router.push(href as any)}>
+          <TouchableOpacity key={href} style={styles.tab} onPress={() => router.navigate(href as any)}>
             <View style={[styles.pill, active && { backgroundColor: colors.accentTint }]}>
               <Icon size={20} color={active ? colors.accent : colors.textMuted} />
             </View>
