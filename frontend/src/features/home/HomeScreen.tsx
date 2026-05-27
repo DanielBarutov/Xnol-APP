@@ -303,7 +303,7 @@ export function HomeScreen() {
                   border: `1px solid ${COLORS.border}`,
                   borderRadius: 20,
                   padding: 18,
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.35)',
+                  boxShadow: '0 2px 12px var(--color-border-strong)',
                 }}
               >
                 {/* Top row */}
@@ -316,7 +316,7 @@ export function HomeScreen() {
                 </div>
 
                 {/* Balance */}
-                <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: -1, marginBottom: 12 }}>
+                <div style={{ fontSize: 28, fontWeight: 800, color: COLORS.textPrimary, letterSpacing: -1, marginBottom: 12 }}>
                   {balanceVisible ? `${balance.toLocaleString('ru-RU')} ${currencySymbol}` : '••••••'}
                 </div>
 
