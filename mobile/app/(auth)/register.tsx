@@ -28,11 +28,18 @@ export default function RegisterScreen() {
     setError(null)
     try {
       await authApi.register({ full_name: fullName, email: email.trim(), password, primary_currency: currency })
+    } catch {
+      setLoading(false)
+      setError('Ошибка регистрации. Возможно, этот email уже используется.')
+      return
+    }
+    try {
       const { access_token, refresh_token } = await authApi.login({ email: email.trim(), password })
       setTokens(access_token, refresh_token)
       router.replace('/(tabs)/')
     } catch {
-      setError('Ошибка регистрации. Проверьте данные.')
+      setError('Аккаунт создан. Войдите вручную.')
+      router.replace('/(auth)/login')
     } finally {
       setLoading(false)
     }

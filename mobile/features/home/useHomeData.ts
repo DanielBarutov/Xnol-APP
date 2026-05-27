@@ -3,7 +3,7 @@ import { transactionsApi, accountsApi, categoriesApi, statsApi, transfersApi } f
 
 export function useHomeData() {
   const accounts     = useQuery({ queryKey: ['accounts'],     queryFn: accountsApi.list })
-  const transactions = useQuery({ queryKey: ['transactions'], queryFn: () => transactionsApi.list({ limit: 20 }) })
+  const transactions = useQuery({ queryKey: ['transactions', { limit: 20 }], queryFn: () => transactionsApi.list({ limit: 20 }) })
   const transfers    = useQuery({ queryKey: ['transfers'],    queryFn: transfersApi.list })
   const categories   = useQuery({ queryKey: ['categories'],  queryFn: categoriesApi.list })
   const monthStats   = useQuery({ queryKey: ['stats', 'categories', 'this_month'], queryFn: () => statsApi.categories({ period: 'this_month' }) })

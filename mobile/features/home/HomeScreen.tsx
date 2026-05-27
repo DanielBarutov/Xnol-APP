@@ -87,7 +87,7 @@ export function HomeScreen() {
 
       {/* Accounts strip */}
       {accountList.length > 0 && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false}>
           {accountList.map(a => (
             <TouchableOpacity
               key={a.id}
