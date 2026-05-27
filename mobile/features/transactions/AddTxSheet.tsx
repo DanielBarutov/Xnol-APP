@@ -1,6 +1,6 @@
 import { forwardRef, useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native'
-import BottomSheet from '@gorhom/bottom-sheet'
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native'
+import BottomSheet, { BottomSheetScrollView, BottomSheetTextInput } from '@gorhom/bottom-sheet'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { transactionsApi, accountsApi, categoriesApi } from '@xnoll/shared'
 import { useTheme } from '../../theme/ThemeProvider'
@@ -12,9 +12,19 @@ function flatten(cats: CategoryResponse[]): CategoryResponse[] {
   return cats.flatMap(c => [c, ...flatten(c.children ?? [])])
 }
 
-interface Props { onCreated?: () => void }
+function getLocalDate(): string {
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
 
-export const AddTxSheet = forwardRef<BottomSheet, Props>(({ onCreated }, ref) => {
+const SNAP_POINTS = ['80%', '95%'] as const
+
+interface Props { onCreated?: () => void; onClose?: () => void }
+
+export const AddTxSheet = forwardRef<BottomSheet, Props>(({ onCreated, onClose }, ref) => {
   const colors = useTheme()
   const qc = useQueryClient()
   const showToast = useUIStore((s) => s.showToast)
@@ -24,13 +34,27 @@ export const AddTxSheet = forwardRef<BottomSheet, Props>(({ onCreated }, ref) =>
   const [description, setDescription] = useState('')
   const [accountId, setAccountId] = useState<string | null>(null)
   const [categoryId, setCategoryId] = useState<string | null>(null)
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
+  const [date, setDate] = useState(getLocalDate)
   const [loading, setLoading] = useState(false)
 
   const { data: accounts = [] } = useQuery({ queryKey: ['accounts'], queryFn: accountsApi.list })
   const { data: categories = [] } = useQuery({ queryKey: ['categories'], queryFn: categoriesApi.list })
 
   const flatCats = flatten(categories).filter(c => c.type === type && !c.children?.length)
+
+  function reset() {
+    setType('expense')
+    setAmount('')
+    setCategoryId(null)
+    setAccountId(null)
+    setDate(getLocalDate())
+    setDescription('')
+  }
+
+  function handleClose() {
+    reset()
+    onClose?.()
+  }
 
   async function handleCreate() {
     if (!amount || !accountId || !categoryId) { showToast('Заполните все поля', '#f87171'); return }
@@ -41,15 +65,15 @@ export const AddTxSheet = forwardRef<BottomSheet, Props>(({ onCreated }, ref) =>
       qc.invalidateQueries({ queryKey: ['accounts'] })
       qc.invalidateQueries({ queryKey: ['stats'] })
       showToast('Транзакция добавлена', '#34d399')
-      setAmount(''); setDescription(''); setCategoryId(null)
+      reset()
       onCreated?.()
     } catch { showToast('Ошибка', '#f87171') }
     finally { setLoading(false) }
   }
 
   return (
-    <Sheet ref={ref} snapPoints={['80%', '95%']}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+    <Sheet ref={ref} snapPoints={SNAP_POINTS} onClose={handleClose}>
+      <BottomSheetScrollView showsVerticalScrollIndicator={false}>
         <Text style={[styles.title, { color: colors.textPrimary }]}>Новая транзакция</Text>
 
         <View style={[styles.toggle, { backgroundColor: colors.surface2 }]}>
@@ -66,7 +90,7 @@ export const AddTxSheet = forwardRef<BottomSheet, Props>(({ onCreated }, ref) =>
           ))}
         </View>
 
-        <TextInput
+        <BottomSheetTextInput
           style={[styles.input, { backgroundColor: colors.surface2, color: colors.textPrimary }]}
           placeholder="Сумма"
           placeholderTextColor={colors.textMuted}
@@ -76,7 +100,7 @@ export const AddTxSheet = forwardRef<BottomSheet, Props>(({ onCreated }, ref) =>
         />
 
         <Text style={[styles.label, { color: colors.textMuted }]}>Счёт</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chips}>
+        <BottomSheetScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chips}>
           {accounts.map(a => (
             <TouchableOpacity
               key={a.id}
@@ -86,7 +110,7 @@ export const AddTxSheet = forwardRef<BottomSheet, Props>(({ onCreated }, ref) =>
               <Text style={{ color: accountId === a.id ? colors.accent : colors.textSecondary, fontSize: 13 }}>{a.name}</Text>
             </TouchableOpacity>
           ))}
-        </ScrollView>
+        </BottomSheetScrollView>
 
         <Text style={[styles.label, { color: colors.textMuted }]}>Категория</Text>
         <View style={styles.catGrid}>
@@ -102,14 +126,14 @@ export const AddTxSheet = forwardRef<BottomSheet, Props>(({ onCreated }, ref) =>
           ))}
         </View>
 
-        <TextInput
+        <BottomSheetTextInput
           style={[styles.input, { backgroundColor: colors.surface2, color: colors.textPrimary }]}
           placeholder="Описание (необязательно)"
           placeholderTextColor={colors.textMuted}
           value={description}
           onChangeText={setDescription}
         />
-        <TextInput
+        <BottomSheetTextInput
           style={[styles.input, { backgroundColor: colors.surface2, color: colors.textPrimary }]}
           placeholder="Дата (YYYY-MM-DD)"
           placeholderTextColor={colors.textMuted}
@@ -120,7 +144,7 @@ export const AddTxSheet = forwardRef<BottomSheet, Props>(({ onCreated }, ref) =>
         <TouchableOpacity style={[styles.btn, { backgroundColor: colors.accent }]} onPress={handleCreate} disabled={loading}>
           {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Добавить</Text>}
         </TouchableOpacity>
-      </ScrollView>
+      </BottomSheetScrollView>
     </Sheet>
   )
 })

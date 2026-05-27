@@ -4,7 +4,7 @@ import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
 import { useTheme } from '../theme/ThemeProvider'
 
 interface SheetProps {
-  snapPoints?: (string | number)[]
+  snapPoints?: readonly (string | number)[]
   children: React.ReactNode
   onClose?: () => void
 }
@@ -21,12 +21,14 @@ export const Sheet = forwardRef<BottomSheet, SheetProps>(({ snapPoints = ['60%',
     <BottomSheet
       ref={ref}
       index={-1}
-      snapPoints={snapPoints}
+      snapPoints={snapPoints ? [...snapPoints] : undefined}
       enablePanDownToClose
       backdropComponent={renderBackdrop}
       backgroundStyle={{ backgroundColor: colors.surface }}
       handleIndicatorStyle={{ backgroundColor: colors.border }}
       onClose={onClose}
+      keyboardBehavior="interactive"
+      android_keyboardInputMode="adjustResize"
     >
       <BottomSheetView style={{ flex: 1, paddingHorizontal: 20, paddingBottom: 40 }}>
         {children}

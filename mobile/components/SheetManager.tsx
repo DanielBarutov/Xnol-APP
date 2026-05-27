@@ -6,6 +6,12 @@ import { TransactionDetail } from '../features/transactions/TransactionDetailShe
 import { Sheet } from './Sheet'
 import type { TransactionResponse } from '@xnoll/shared'
 
+function isTransaction(p: unknown): p is TransactionResponse {
+  return typeof p === 'object' && p !== null && 'type' in p && 'amount' in p
+}
+
+const DETAIL_SNAP_POINTS = ['45%'] as const
+
 export function SheetManager() {
   const modal = useUIStore((s) => s.modal)
   const closeModal = useUIStore((s) => s.closeModal)
@@ -24,11 +30,11 @@ export function SheetManager() {
 
   return (
     <>
-      <AddTxSheet ref={addTxRef} onCreated={closeModal} />
-      <Sheet ref={detailRef} snapPoints={['45%']} onClose={closeModal}>
-        {modal.type === 'transaction-detail' && modal.payload ? (
-          <TransactionDetail transaction={modal.payload as TransactionResponse} onClose={closeModal} />
-        ) : null}
+      <AddTxSheet ref={addTxRef} onCreated={closeModal} onClose={closeModal} />
+      <Sheet ref={detailRef} snapPoints={DETAIL_SNAP_POINTS} onClose={closeModal}>
+        {isTransaction(modal.payload) && (
+          <TransactionDetail transaction={modal.payload} onClose={closeModal} />
+        )}
       </Sheet>
     </>
   )

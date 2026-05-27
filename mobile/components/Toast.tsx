@@ -11,11 +11,14 @@ export function Toast() {
 
   useEffect(() => {
     if (!toast) return
-    Animated.sequence([
+    opacity.setValue(0)
+    const animation = Animated.sequence([
       Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: true }),
       Animated.delay(2500),
       Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }),
-    ]).start(() => dismiss())
+    ])
+    animation.start(({ finished }) => { if (finished) dismiss() })
+    return () => animation.stop()
   }, [toast])
 
   if (!toast) return null

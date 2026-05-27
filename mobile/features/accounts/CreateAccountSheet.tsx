@@ -1,12 +1,13 @@
 import { forwardRef, useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native'
-import BottomSheet from '@gorhom/bottom-sheet'
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native'
+import BottomSheet, { BottomSheetTextInput } from '@gorhom/bottom-sheet'
 import { accountsApi } from '@xnoll/shared'
 import { useTheme } from '../../theme/ThemeProvider'
 import { Sheet } from '../../components/Sheet'
 import type { Currency } from '@xnoll/shared'
 
 const CURRENCIES: Currency[] = ['RUB', 'USD', 'EUR']
+const SNAP_POINTS = ['55%'] as const
 
 interface Props { onCreated: () => void }
 
@@ -19,25 +20,33 @@ export const CreateAccountSheet = forwardRef<BottomSheet, Props>(({ onCreated },
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  function reset() {
+    setName('')
+    setBank('')
+    setBalance('0')
+    setCurrency('RUB')
+    setError(null)
+  }
+
   async function handleCreate() {
     if (!name) { setError('Введите название'); return }
     setLoading(true)
     setError(null)
     try {
       await accountsApi.create({ name, bank_name: bank, currency, balance })
-      setName(''); setBank(''); setBalance('0'); setCurrency('RUB')
+      reset()
       onCreated()
     } catch { setError('Ошибка создания счёта') }
     finally { setLoading(false) }
   }
 
   return (
-    <Sheet ref={ref} snapPoints={['55%']}>
+    <Sheet ref={ref} snapPoints={SNAP_POINTS} onClose={reset}>
       <Text style={[styles.title, { color: colors.textPrimary }]}>Новый счёт</Text>
       {error && <Text style={styles.error}>{error}</Text>}
-      <TextInput style={[styles.input, { backgroundColor: colors.surface2, color: colors.textPrimary }]} placeholder="Название" placeholderTextColor={colors.textMuted} value={name} onChangeText={setName} />
-      <TextInput style={[styles.input, { backgroundColor: colors.surface2, color: colors.textPrimary }]} placeholder="Банк (необязательно)" placeholderTextColor={colors.textMuted} value={bank} onChangeText={setBank} />
-      <TextInput style={[styles.input, { backgroundColor: colors.surface2, color: colors.textPrimary }]} placeholder="Начальный баланс" placeholderTextColor={colors.textMuted} keyboardType="decimal-pad" value={balance} onChangeText={setBalance} />
+      <BottomSheetTextInput style={[styles.input, { backgroundColor: colors.surface2, color: colors.textPrimary }]} placeholder="Название" placeholderTextColor={colors.textMuted} value={name} onChangeText={setName} />
+      <BottomSheetTextInput style={[styles.input, { backgroundColor: colors.surface2, color: colors.textPrimary }]} placeholder="Банк (необязательно)" placeholderTextColor={colors.textMuted} value={bank} onChangeText={setBank} />
+      <BottomSheetTextInput style={[styles.input, { backgroundColor: colors.surface2, color: colors.textPrimary }]} placeholder="Начальный баланс" placeholderTextColor={colors.textMuted} keyboardType="decimal-pad" value={balance} onChangeText={setBalance} />
       <View style={styles.row}>
         {CURRENCIES.map(c => (
           <TouchableOpacity key={c} style={[styles.chip, { borderColor: currency === c ? colors.accent : colors.border, backgroundColor: currency === c ? colors.accentTint : colors.surface2 }]} onPress={() => setCurrency(c)}>

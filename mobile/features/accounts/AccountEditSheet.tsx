@@ -1,46 +1,65 @@
 import { forwardRef, useState, useEffect } from 'react'
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native'
-import BottomSheet from '@gorhom/bottom-sheet'
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native'
+import BottomSheet, { BottomSheetTextInput } from '@gorhom/bottom-sheet'
 import { accountsApi } from '@xnoll/shared'
 import { useTheme } from '../../theme/ThemeProvider'
+import { useUIStore } from '../../store/ui'
 import { Sheet } from '../../components/Sheet'
 import type { AccountResponse } from '@xnoll/shared'
 
-interface Props { account: AccountResponse; onUpdated: () => void }
+const SNAP_POINTS = ['55%'] as const
+
+interface Props { account: AccountResponse | null; onUpdated: () => void }
 
 export const AccountEditSheet = forwardRef<BottomSheet, Props>(({ account, onUpdated }, ref) => {
   const colors = useTheme()
-  const [name, setName] = useState(account.name)
-  const [bank, setBank] = useState(account.bank_name)
-  const [balance, setBalance] = useState(account.balance)
+  const showToast = useUIStore((s) => s.showToast)
+  const [name, setName] = useState(account?.name ?? '')
+  const [bank, setBank] = useState(account?.bank_name ?? '')
+  const [balance, setBalance] = useState(account?.balance ?? '')
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => { setName(account.name); setBank(account.bank_name); setBalance(account.balance) }, [account])
+  useEffect(() => {
+    if (!account) return
+    setName(account.name)
+    setBank(account.bank_name)
+    setBalance(account.balance)
+  }, [account])
+
+  if (!account) return null
 
   async function handleUpdate() {
+    if (!account) return
     setLoading(true)
     try {
       await accountsApi.update(account.id, { name, bank_name: bank, balance })
       onUpdated()
-    } catch {} finally { setLoading(false) }
+    } catch {
+      showToast('Ошибка сохранения', colors.expense)
+    } finally { setLoading(false) }
   }
 
   function handleDelete() {
+    if (!account) return
     Alert.alert('Удалить счёт', `Удалить "${account.name}"?`, [
       { text: 'Отмена', style: 'cancel' },
       { text: 'Удалить', style: 'destructive', onPress: async () => {
-        await accountsApi.delete(account.id)
-        onUpdated()
+        try {
+          await accountsApi.delete(account.id)
+          onUpdated()
+        } catch {
+          showToast('Ошибка удаления', colors.expense)
+        }
       }},
     ])
   }
 
   return (
-    <Sheet ref={ref} snapPoints={['55%']}>
+    <Sheet ref={ref} snapPoints={SNAP_POINTS}>
       <Text style={[styles.title, { color: colors.textPrimary }]}>Редактировать счёт</Text>
-      <TextInput style={[styles.input, { backgroundColor: colors.surface2, color: colors.textPrimary }]} placeholder="Название" placeholderTextColor={colors.textMuted} value={name} onChangeText={setName} />
-      <TextInput style={[styles.input, { backgroundColor: colors.surface2, color: colors.textPrimary }]} placeholder="Банк" placeholderTextColor={colors.textMuted} value={bank} onChangeText={setBank} />
-      <TextInput style={[styles.input, { backgroundColor: colors.surface2, color: colors.textPrimary }]} placeholder="Баланс" placeholderTextColor={colors.textMuted} keyboardType="decimal-pad" value={balance} onChangeText={setBalance} />
+      <BottomSheetTextInput style={[styles.input, { backgroundColor: colors.surface2, color: colors.textPrimary }]} placeholder="Название" placeholderTextColor={colors.textMuted} value={name} onChangeText={setName} />
+      <BottomSheetTextInput style={[styles.input, { backgroundColor: colors.surface2, color: colors.textPrimary }]} placeholder="Банк" placeholderTextColor={colors.textMuted} value={bank} onChangeText={setBank} />
+      <BottomSheetTextInput style={[styles.input, { backgroundColor: colors.surface2, color: colors.textPrimary }]} placeholder="Баланс" placeholderTextColor={colors.textMuted} keyboardType="decimal-pad" value={balance} onChangeText={setBalance} />
       <TouchableOpacity style={[styles.btn, { backgroundColor: colors.accent }]} onPress={handleUpdate} disabled={loading}>
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Сохранить</Text>}
       </TouchableOpacity>

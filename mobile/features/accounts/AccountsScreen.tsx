@@ -18,7 +18,7 @@ export function AccountsScreen() {
   const editRef = useRef<BottomSheet>(null)
   const [selected, setSelected] = useState<AccountResponse | null>(null)
 
-  const { data: accounts = [], isLoading } = useQuery({ queryKey: ['accounts'], queryFn: accountsApi.list })
+  const { data: accounts = [], isLoading, isFetching } = useQuery({ queryKey: ['accounts'], queryFn: accountsApi.list })
 
   const totalRUB = accounts.filter(a => a.currency === 'RUB').reduce((s, a) => s + parseFloat(a.balance), 0)
 
@@ -26,7 +26,7 @@ export function AccountsScreen() {
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView
         contentContainerStyle={{ paddingTop: insets.top + 16, paddingHorizontal: 16, paddingBottom: 120, gap: 12 }}
-        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => qc.invalidateQueries({ queryKey: ['accounts'] })} />}
+        refreshControl={<RefreshControl refreshing={isFetching} onRefresh={() => qc.invalidateQueries({ queryKey: ['accounts'] })} />}
       >
         <View style={styles.header}>
           <Text style={[styles.title, { color: colors.textPrimary }]}>Счета</Text>
@@ -61,13 +61,11 @@ export function AccountsScreen() {
       </ScrollView>
 
       <CreateAccountSheet ref={createRef} onCreated={() => { qc.invalidateQueries({ queryKey: ['accounts'] }); createRef.current?.close() }} />
-      {selected && (
-        <AccountEditSheet
-          ref={editRef}
-          account={selected}
-          onUpdated={() => { qc.invalidateQueries({ queryKey: ['accounts'] }); editRef.current?.close() }}
-        />
-      )}
+      <AccountEditSheet
+        ref={editRef}
+        account={selected}
+        onUpdated={() => { qc.invalidateQueries({ queryKey: ['accounts'] }); editRef.current?.close(); setSelected(null) }}
+      />
     </View>
   )
 }

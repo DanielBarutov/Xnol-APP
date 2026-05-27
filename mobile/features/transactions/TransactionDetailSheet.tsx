@@ -17,12 +17,16 @@ export function TransactionDetail({ transaction: tx, onClose }: Props) {
     Alert.alert('Удалить транзакцию', 'Это действие нельзя отменить.', [
       { text: 'Отмена', style: 'cancel' },
       { text: 'Удалить', style: 'destructive', onPress: async () => {
-        await transactionsApi.delete(tx.id)
-        qc.invalidateQueries({ queryKey: ['transactions'] })
-        qc.invalidateQueries({ queryKey: ['accounts'] })
-        qc.invalidateQueries({ queryKey: ['stats'] })
-        showToast('Транзакция удалена', '#6366f1')
-        onClose()
+        try {
+          await transactionsApi.delete(tx.id)
+          qc.invalidateQueries({ queryKey: ['transactions'] })
+          qc.invalidateQueries({ queryKey: ['accounts'] })
+          qc.invalidateQueries({ queryKey: ['stats'] })
+          showToast('Транзакция удалена', '#6366f1')
+          onClose()
+        } catch {
+          showToast('Ошибка удаления', colors.expense)
+        }
       }},
     ])
   }
