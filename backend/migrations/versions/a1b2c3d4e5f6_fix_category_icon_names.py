@@ -34,7 +34,7 @@ def upgrade() -> None:
         "plus-circle":      "PlusCircle",
     }
     for old, new in icon_map.items():
-        op.execute(text("UPDATE categories SET icon = :new WHERE icon = :old"), {"new": new, "old": old})
+        op.execute(text("UPDATE categories SET icon = :new WHERE icon = :old").bindparams(new=new, old=old))
 
 
 def downgrade() -> None:
@@ -53,4 +53,4 @@ def downgrade() -> None:
         "PlusCircle":      "plus-circle",
     }
     for old, new in icon_map.items():
-        op.execute(text("UPDATE categories SET icon = :new WHERE icon = :old"), {"new": new, "old": old})
+        op.execute(text("UPDATE categories SET icon = :new WHERE icon = :old").bindparams(new=new, old=old))
