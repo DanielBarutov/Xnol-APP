@@ -52,7 +52,7 @@ function formatTxDate(isoDate: string, isoCreatedAt: string): string {
 
 export function HomeScreen() {
   const navigate = useNavigate()
-  const { accounts, transactions, categories, monthStats, totalBalance } = useHomeData()
+  const { accounts, transactions, transfers, categories, monthStats, totalBalance } = useHomeData()
   const balanceVisible = useUIStore((s) => s.balanceVisible)
   const toggleBalance = useUIStore((s) => s.toggleBalance)
   const openModal = useUIStore((s) => s.openModal)
@@ -64,6 +64,24 @@ export function HomeScreen() {
   const accountList = accounts.data ?? []
   const txList = transactions.data ?? []
   const categoryList = categories.data ?? []
+  const transferList = transfers.data ?? []
+
+  const accountNameById = Object.fromEntries(
+    accountList.map(a => [a.id, a.bank_name ? `${a.bank_name} · ${a.name}` : a.name])
+  )
+
+  function flatten(cats: typeof categoryList): typeof categoryList {
+    return cats.flatMap((c) => [c, ...flatten(c.children ?? [])])
+  }
+
+  type UnifiedEntry =
+    | { kind: 'tx';       date: string; data: typeof txList[0] }
+    | { kind: 'transfer'; date: string; data: typeof transferList[0] }
+
+  const recentEntries: UnifiedEntry[] = [
+    ...txList.map(t => ({ kind: 'tx' as const,       date: t.date, data: t })),
+    ...transferList.map(t => ({ kind: 'transfer' as const, date: t.date, data: t })),
+  ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 20)
 
   // Other-currency balances for subtitle
   const otherBalances = accountList
@@ -99,18 +117,11 @@ export function HomeScreen() {
   }
 
   function getCategoryIcon(categoryId: string): string {
-    // Flatten all categories including children
-    function flatten(cats: typeof categoryList): typeof categoryList {
-      return cats.flatMap((c) => [c, ...flatten(c.children ?? [])])
-    }
     const all = flatten(categoryList)
     return all.find((c) => c.id === categoryId)?.icon ?? 'Package'
   }
 
   function getCategoryColor(categoryId: string): string {
-    function flatten(cats: typeof categoryList): typeof categoryList {
-      return cats.flatMap((c) => [c, ...flatten(c.children ?? [])])
-    }
     const all = flatten(categoryList)
     return all.find((c) => c.id === categoryId)?.color ?? '#6366f1'
   }
@@ -365,60 +376,68 @@ export function HomeScreen() {
         </div>
 
         <div style={{ padding: '0 20px' }}>
-          {transactions.isLoading && (
+          {(transactions.isLoading || transfers.isLoading) && (
             <div style={{ color: COLORS.textSecondary, fontSize: 13, padding: '12px 0' }}>Загрузка...</div>
           )}
-          {txList.map((tx) => {
-            const iconName = getCategoryIcon(tx.category_id)
-            const catColor = getCategoryColor(tx.category_id)
-            const isIncome = tx.type === 'income'
-            const amtColor = isIncome ? COLORS.income : COLORS.expense
-            const amtPrefix = isIncome ? '+' : '−'
-            const amt = Math.abs(parseFloat(tx.amount)).toLocaleString('ru-RU')
+          {recentEntries.map((entry) => {
+            if (entry.kind === 'tx') {
+              const tx = entry.data
+              const iconName = getCategoryIcon(tx.category_id)
+              const catColor = getCategoryColor(tx.category_id)
+              const allCats = flatten(categoryList)
+              const catName  = allCats.find(c => c.id === tx.category_id)?.name ?? 'Категория'
+              const accName  = accountNameById[tx.account_id] ?? 'Счёт'
+              const isIncome = tx.type === 'income'
+              const amtColor  = isIncome ? COLORS.income : COLORS.expense
+              const amtPrefix = isIncome ? '+' : '−'
+              const amt = Math.abs(parseFloat(tx.amount)).toLocaleString('ru-RU')
+              const direction = isIncome ? `${catName} → ${accName}` : `${accName} → ${catName}`
+
+              return (
+                <div key={`tx-${tx.id}`} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: `1px solid ${COLORS.border}` }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 14, background: `${catColor}22`, border: `1px solid ${catColor}44`, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                    <DynIcon name={iconName} size={18} color={catColor} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: COLORS.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {direction}
+                    </div>
+                    <div style={{ fontSize: 12, color: COLORS.textSecondary, marginTop: 2 }}>
+                      {formatTxDate(tx.date, tx.created_at)}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: amtColor, flexShrink: 0 }}>
+                    {balanceVisible ? `${amtPrefix}${amt} ₽` : '••••••'}
+                  </div>
+                </div>
+              )
+            }
+
+            const tr = entry.data
+            const srcName = tr.source_id ? (accountNameById[tr.source_id] ?? tr.source_label ?? 'Счёт') : (tr.source_label ?? 'Внешний')
+            const dstName = tr.dest_id   ? (accountNameById[tr.dest_id]   ?? tr.dest_label   ?? 'Счёт') : (tr.dest_label   ?? 'Внешний')
+            const amt = Math.abs(parseFloat(tr.amount)).toLocaleString('ru-RU')
 
             return (
-              <div
-                key={tx.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  padding: '12px 0',
-                  borderBottom: `1px solid ${COLORS.border}`,
-                }}
-              >
-                {/* Icon */}
-                <div style={{
-                  width: 40, height: 40, borderRadius: 14,
-                  background: `${catColor}22`,
-                  border: `1px solid ${catColor}44`,
-                  display: 'grid', placeItems: 'center',
-                  flexShrink: 0,
-                }}>
-                  <DynIcon name={iconName} size={18} color={catColor} />
+              <div key={`tr-${tr.id}`} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: `1px solid ${COLORS.border}` }}>
+                <div style={{ width: 40, height: 40, borderRadius: 14, background: 'var(--accent-tint)', border: '1px solid var(--accent)44', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                  <DynIcon name="ArrowRightLeft" size={18} color="var(--accent)" />
                 </div>
-
-                {/* Text */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{
-                    fontSize: 14, fontWeight: 600, color: COLORS.textPrimary,
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>
-                    {tx.description || 'Операция'}
+                  <div style={{ fontSize: 14, fontWeight: 600, color: COLORS.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {srcName} → {dstName}
                   </div>
                   <div style={{ fontSize: 12, color: COLORS.textSecondary, marginTop: 2 }}>
-                    {formatTxDate(tx.date, tx.created_at)}
+                    {formatTxDate(tr.date, tr.created_at)}
                   </div>
                 </div>
-
-                {/* Amount */}
-                <div style={{ fontSize: 15, fontWeight: 700, color: amtColor, flexShrink: 0 }}>
-                  {balanceVisible ? `${amtPrefix}${amt} ₽` : '••••••'}
+                <div style={{ fontSize: 15, fontWeight: 700, color: COLORS.textSecondary, flexShrink: 0 }}>
+                  {balanceVisible ? `${amt} ₽` : '••••••'}
                 </div>
               </div>
             )
           })}
-          {!transactions.isLoading && txList.length === 0 && (
+          {!transactions.isLoading && !transfers.isLoading && recentEntries.length === 0 && (
             <div style={{ color: COLORS.textSecondary, fontSize: 13, textAlign: 'center', padding: '32px 0' }}>
               Операций пока нет
             </div>
