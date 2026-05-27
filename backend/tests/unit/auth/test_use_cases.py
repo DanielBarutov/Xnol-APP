@@ -61,3 +61,11 @@ async def test_login_unknown_email_raises(repo):
         await LoginUserUseCase(repo).execute(
             LoginUserDTO(email="nobody@x.com", password="pass")
         )
+
+
+@pytest.mark.asyncio
+async def test_default_categories_use_pascal_case_icons():
+    from app.modules.auth.application.use_cases import _DEFAULT_CATEGORIES
+    for _name, _type, icon, _color in _DEFAULT_CATEGORIES:
+        assert icon[0].isupper(), f"Icon '{icon}' must start with uppercase"
+        assert "-" not in icon, f"Icon '{icon}' must not contain hyphens"

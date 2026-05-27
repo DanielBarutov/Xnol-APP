@@ -13,18 +13,18 @@ from app.modules.categories.domain.interfaces import ICategoryRepository
 from app.shared.exceptions import AlreadyExistsError, AuthenticationError
 
 _DEFAULT_CATEGORIES = [
-    ("Еда",            "expense", "utensils",         "#f97316"),
-    ("Транспорт",      "expense", "car",               "#3b82f6"),
-    ("Жильё",          "expense", "home",              "#8b5cf6"),
-    ("Здоровье",       "expense", "heart-pulse",       "#ef4444"),
-    ("Развлечения",    "expense", "gamepad-2",         "#ec4899"),
-    ("Одежда",         "expense", "shirt",             "#f59e0b"),
-    ("Образование",    "expense", "graduation-cap",    "#06b6d4"),
-    ("Прочие расходы", "expense", "circle-ellipsis",   "#6b7280"),
-    ("Зарплата",       "income",  "briefcase",         "#22c55e"),
-    ("Фриланс",        "income",  "laptop",            "#10b981"),
-    ("Инвестиции",     "income",  "trending-up",       "#14b8a6"),
-    ("Прочие доходы",  "income",  "plus-circle",       "#6b7280"),
+    ("Еда",            "expense", "Utensils",         "#f97316"),
+    ("Транспорт",      "expense", "Car",               "#3b82f6"),
+    ("Жильё",          "expense", "Home",              "#8b5cf6"),
+    ("Здоровье",       "expense", "HeartPulse",        "#ef4444"),
+    ("Развлечения",    "expense", "Gamepad2",          "#ec4899"),
+    ("Одежда",         "expense", "Shirt",             "#f59e0b"),
+    ("Образование",    "expense", "GraduationCap",     "#06b6d4"),
+    ("Прочие расходы", "expense", "CircleEllipsis",    "#6b7280"),
+    ("Зарплата",       "income",  "Briefcase",         "#22c55e"),
+    ("Фриланс",        "income",  "Laptop",            "#10b981"),
+    ("Инвестиции",     "income",  "TrendingUp",        "#14b8a6"),
+    ("Прочие доходы",  "income",  "PlusCircle",        "#6b7280"),
 ]
 
 
