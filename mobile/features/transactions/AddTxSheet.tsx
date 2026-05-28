@@ -95,19 +95,21 @@ export const AddTxSheet = forwardRef<BottomSheet, Props>(({ onCreated, onClose }
 
   function handleCreate() {
     if (!accountId) { showToast('Выберите счёт', '#f87171'); return }
+    const parsed = parseFloat(amount)
+    if (!parsed) { showToast('Введите сумму', '#f87171'); return }
 
     const id = genId()
     const payload = {
       account_id: accountId,
       category_id: categoryId!,
       type,
-      amount: parseFloat(amount).toFixed(2),
+      amount: parsed.toFixed(2),
       date: getLocalDate(),
       description: comment || undefined,
     }
 
     enqueue({ id, type: 'transaction', payload })
-    patchBalance(qc, accountId, type === 'income' ? parseFloat(amount) : -parseFloat(amount))
+    patchBalance(qc, accountId, type === 'income' ? parsed : -parsed)
     showToast('Добавлено', '#34d399')
     reset()
     onCreated?.()
