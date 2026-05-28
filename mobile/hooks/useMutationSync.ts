@@ -22,11 +22,11 @@ export function useMutationSync() {
     for (const item of [...items]) {
       try {
         if (item.type === 'transaction') {
-          await transactionsApi.create(item.payload)
+          await transactionsApi.create(item.payload, item.id)
         } else if (item.type === 'transfer') {
-          await transfersApi.create(item.payload)
+          await transfersApi.create(item.payload, item.id)
         } else if (item.type === 'account') {
-          await accountsApi.create(item.payload)
+          await accountsApi.create(item.payload, item.id)
         }
         remove(item.id)
         processed++
