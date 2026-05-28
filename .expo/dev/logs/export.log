@@ -1,0 +1,14 @@
+{"_e":"root:init","_t":1779896667441,"format":"v0-jsonl","version":"56.1.12"}
+{"_e":"env:mode","_t":1779896667511,"nodeEnv":"production","babelEnv":"production","mode":"production"}
+{"_e":"env:load","_t":1779896667513,"mode":"production","files":["../../../.env"],"env":{"ACCESS_TOKEN_EXPIRE_MINUTES":"15","CORS_ORIGINS":"http://localhost:5173","DB_HOST":"db","DB_NAME":"xnoll_db","DB_PASSWORD":"xnoll_secret","DB_PORT":"5432","DB_USER":"xnoll","JWT_ALGORITHM":"HS256","JWT_SECRET_KEY":"change-me-use-openssl-rand-hex-32","REDIS_URL":"redis://redis:6379/0","REFRESH_TOKEN_EXPIRE_DAYS":"30","USE_FAKE_REPO":"false"}}
+{"_e":"devserver:start","_t":1779896667524,"mode":"production","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../../../app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":true}
+{"_e":"metro:config","_t":1779896667659,"serverRoot":"../../..","projectRoot":"../../..","exporting":true,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"metro:instantiate","_t":1779896667715,"atlas":false,"workers":10,"host":null,"port":null}
+{"_e":"metro:bundling:started","_t":1779896667878,"id":"1","platform":"ios","environment":null,"entry":"node_modules/expo/AppEntry.js"}
+{"_e":"root:init","_t":1779897055819,"format":"v0-jsonl","version":"56.1.12"}
+{"_e":"env:mode","_t":1779897055887,"nodeEnv":"production","babelEnv":"production","mode":"production"}
+{"_e":"env:load","_t":1779897055889,"mode":"production","files":["../../../.env"],"env":{"ACCESS_TOKEN_EXPIRE_MINUTES":"15","CORS_ORIGINS":"http://localhost:5173","DB_HOST":"db","DB_NAME":"xnoll_db","DB_PASSWORD":"xnoll_secret","DB_PORT":"5432","DB_USER":"xnoll","JWT_ALGORITHM":"HS256","JWT_SECRET_KEY":"change-me-use-openssl-rand-hex-32","REDIS_URL":"redis://redis:6379/0","REFRESH_TOKEN_EXPIRE_DAYS":"30","USE_FAKE_REPO":"false"}}
+{"_e":"devserver:start","_t":1779897055900,"mode":"production","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../../../app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":true}
+{"_e":"metro:config","_t":1779897056038,"serverRoot":"../../..","projectRoot":"../../..","exporting":true,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"metro:instantiate","_t":1779897056095,"atlas":false,"workers":10,"host":null,"port":null}
+{"_e":"metro:bundling:started","_t":1779897056294,"id":"1","platform":"ios","environment":null,"entry":"node_modules/expo/AppEntry.js"}

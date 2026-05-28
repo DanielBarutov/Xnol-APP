@@ -2,15 +2,19 @@ import { useEffect } from 'react'
 import { Stack, useRouter, useSegments } from 'expo-router'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, onlineManager } from '@tanstack/react-query'
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import NetInfo from '@react-native-community/netinfo'
 import { ThemeProvider } from '../theme/ThemeProvider'
 import { useAuthStore } from '../store/auth'
 import { useUIStore } from '../store/ui'
 import { initApiClient, authApi } from '@xnoll/shared'
 import { SheetManager } from '../components/SheetManager'
 import { Toast } from '../components/Toast'
+import { useMutationSync } from '../hooks/useMutationSync'
 
-// Called once at module evaluation time — before any component mounts
 initApiClient({
   baseURL: process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000',
   getAccessToken: () => useAuthStore.getState().accessToken,
@@ -19,9 +23,33 @@ initApiClient({
   onLogout: () => useAuthStore.getState().logout(),
 })
 
-const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
+// Drive React Query's online state from NetInfo
+onlineManager.setEventListener(setOnline => {
+  return NetInfo.addEventListener(state => {
+    setOnline(!!state.isConnected)
+  })
 })
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      staleTime: 60_000,
+      gcTime: 1000 * 60 * 60 * 24 * 7, // 7 days — keep cache for offline use
+    },
+  },
+})
+
+const persister = createAsyncStoragePersister({
+  storage: AsyncStorage,
+  key: 'xnoll-query-cache',
+  throttleTime: 3000,
+})
+
+function MutationSync() {
+  useMutationSync()
+  return null
+}
 
 function AuthGuard() {
   const accessToken = useAuthStore((s) => s.accessToken)
@@ -33,7 +61,7 @@ function AuthGuard() {
   const router = useRouter()
 
   useEffect(() => {
-    if (!hasHydrated) return  // wait for SecureStore to rehydrate
+    if (!hasHydrated) return
     const inAuth = segments[0] === '(auth)'
     if (!accessToken && !inAuth) router.replace('/(auth)/login')
     else if (accessToken && inAuth) router.replace('/(tabs)/')
@@ -57,14 +85,18 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <QueryClientProvider client={queryClient}>
+        <PersistQueryClientProvider
+          client={queryClient}
+          persistOptions={{ persister, maxAge: 1000 * 60 * 60 * 24 * 7 }}
+        >
           <ThemeProvider>
             <AuthGuard />
+            <MutationSync />
             <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
             <SheetManager />
             <Toast />
           </ThemeProvider>
-        </QueryClientProvider>
+        </PersistQueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   )

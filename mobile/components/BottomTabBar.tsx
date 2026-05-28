@@ -1,13 +1,13 @@
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native'
 import { useRouter, usePathname } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Home, Landmark, BarChart3, User, Plus } from 'lucide-react-native'
+import { Home, Wallet, BarChart3, User, Plus } from 'lucide-react-native'
 import { useTheme } from '../theme/ThemeProvider'
 import { useUIStore } from '../store/ui'
 
 const TABS = [
   { href: '/',          label: 'Главная',   Icon: Home },
-  { href: '/accounts',  label: 'Счета',     Icon: Landmark },
+  { href: '/accounts',  label: 'Счета',     Icon: Wallet },
   { href: '/analytics', label: 'Аналитика', Icon: BarChart3 },
   { href: '/profile',   label: 'Профиль',   Icon: User },
 ]
@@ -68,6 +68,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     gap: 4,
+    borderRadius: 9,
   },
   pill: {
     width: 38,
@@ -75,11 +76,13 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
   label: {
     fontSize: 9.5,
     fontWeight: '600',
     letterSpacing: 0.2,
+    overflow: 'hidden',
   },
   fab: {
     width: 50,
