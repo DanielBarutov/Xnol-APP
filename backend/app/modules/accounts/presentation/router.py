@@ -61,6 +61,7 @@ async def create_account(
         )
     dto = await CreateAccountUseCase(repo).execute(
         CreateAccountDTO(
+            id=body.id,
             user_id=user_id,
             name=body.name,
             bank_name=body.bank_name,

@@ -22,6 +22,7 @@ class CreateAccountDTO:
     bank_name: str
     currency: str
     balance: Decimal
+    id: UUID | None = None
 
 
 @dataclass

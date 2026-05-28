@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from app.modules.accounts.application.dtos import AccountDTO, CreateAccountDTO, UpdateAccountDTO
 from app.modules.accounts.domain.entities import Account
@@ -34,6 +34,7 @@ class CreateAccountUseCase:
 
     async def execute(self, dto: CreateAccountDTO) -> AccountDTO:
         account = Account(
+            id=dto.id if dto.id is not None else uuid4(),
             user_id=dto.user_id,
             name=dto.name,
             bank_name=dto.bank_name,

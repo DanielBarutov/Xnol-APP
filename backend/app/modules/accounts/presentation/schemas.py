@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 
 class CreateAccountRequest(BaseModel):
+    id: UUID | None = None
     name: str
     bank_name: str
     currency: str

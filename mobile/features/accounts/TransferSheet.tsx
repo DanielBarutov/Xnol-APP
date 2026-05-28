@@ -1,14 +1,12 @@
 import { forwardRef, useState, useCallback } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Keyboard } from 'react-native'
-
+import { View, Text, TouchableOpacity, StyleSheet, Keyboard } from 'react-native'
 import BottomSheet, { BottomSheetScrollView, BottomSheetTextInput, BottomSheetBackdrop, BottomSheetFooter } from '@gorhom/bottom-sheet'
 import type { BottomSheetBackdropProps, BottomSheetFooterProps } from '@gorhom/bottom-sheet'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { accountsApi, depositsApi, transfersApi } from '@xnoll/shared'
+import { accountsApi, depositsApi } from '@xnoll/shared'
 import { useTheme } from '../../theme/ThemeProvider'
 import { useUIStore } from '../../store/ui'
-import { useMutationQueue, genKey } from '../../store/mutationQueue'
-import { useNetworkStatus } from '../../hooks/useNetworkStatus'
+import { useMutationQueue, genId, patchBalance } from '../../store/mutationQueue'
 import type { SourceDestType } from '@xnoll/shared'
 
 function todayISO() {
@@ -26,7 +24,6 @@ export const TransferSheet = forwardRef<BottomSheet, Props>(({ onCreated, onClos
   const colors = useTheme()
   const showToast = useUIStore(s => s.showToast)
   const qc = useQueryClient()
-  const network = useNetworkStatus()
   const enqueue = useMutationQueue((s) => s.add)
 
   const [step, setStep] = useState(1)
@@ -35,7 +32,6 @@ export const TransferSheet = forwardRef<BottomSheet, Props>(({ onCreated, onClos
   const [fromId, setFromId] = useState<string | null>(null)
   const [toId, setToId] = useState<string | null>(null)
   const [amount, setAmount] = useState('')
-  const [loading, setLoading] = useState(false)
 
   const { data: accounts = [] } = useQuery({ queryKey: ['accounts'], queryFn: accountsApi.list })
   const { data: deposits = [] } = useQuery({ queryKey: ['deposits'], queryFn: depositsApi.list })
@@ -56,40 +52,28 @@ export const TransferSheet = forwardRef<BottomSheet, Props>(({ onCreated, onClos
   const canNext = !!fromId && !!toId && fromId !== toId
   const accent = colors.expense
 
-  async function handleCreate() {
+  function handleCreate() {
     if (!fromId || !toId || !amount) { showToast('Заполните все поля', '#f87171'); return }
+    const parsed = parseFloat(amount.replace(',', '.'))
+    if (!parsed) { showToast('Введите сумму', '#f87171'); return }
 
-    const key = genKey()
+    const id = genId()
     const payload = {
       source_type: fromKind as SourceDestType,
       source_id: fromId,
       dest_type: toKind as SourceDestType,
       dest_id: toId,
-      amount: parseFloat(amount.replace(',', '.')).toFixed(2),
+      amount: parsed.toFixed(2),
       currency: 'RUB' as const,
       date: todayISO(),
     }
 
-    if (network !== 'online') {
-      enqueue({ id: key, type: 'transfer', payload })
-      showToast('Сохранено · отправится при появлении сети', '#f59e0b')
-      reset(); onCreated()
-      return
-    }
-
-    setLoading(true)
-    try {
-      await transfersApi.create(payload, key)
-      qc.invalidateQueries({ queryKey: ['transactions'] })
-      qc.invalidateQueries({ queryKey: ['accounts'] })
-      qc.invalidateQueries({ queryKey: ['transfers'] })
-      showToast('Перевод выполнен', '#34d399')
-      reset(); onCreated()
-    } catch {
-      enqueue({ id: key, type: 'transfer', payload })
-      showToast('Нет связи · сохранено в очередь', '#f59e0b')
-      reset(); onCreated()
-    } finally { setLoading(false) }
+    enqueue({ id, type: 'transfer', payload })
+    patchBalance(qc, fromId, -parsed)
+    patchBalance(qc, toId, +parsed)
+    showToast('Добавлено', '#34d399')
+    reset()
+    onCreated()
   }
 
   const renderBackdrop = useCallback(
@@ -111,15 +95,15 @@ export const TransferSheet = forwardRef<BottomSheet, Props>(({ onCreated, onClos
           ) : (
             <TouchableOpacity
               style={[styles.footerBtn, { backgroundColor: amount ? accent : colors.surface2 }]}
-              onPress={handleCreate} disabled={loading}
+              onPress={handleCreate}
             >
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={[styles.footerBtnText, { color: amount ? '#fff' : colors.textMuted }]}>Перевести</Text>}
+              <Text style={[styles.footerBtnText, { color: amount ? '#fff' : colors.textMuted }]}>Перевести</Text>
             </TouchableOpacity>
           )}
         </View>
       </BottomSheetFooter>
     ),
-    [step, canNext, amount, accent, colors, loading],
+    [step, canNext, amount, accent, colors],
   )
 
   const KindToggle = ({ value, onChange }: { value: EndpointKind; onChange: (k: EndpointKind) => void }) => (

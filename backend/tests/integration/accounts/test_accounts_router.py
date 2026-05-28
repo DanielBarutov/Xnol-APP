@@ -84,3 +84,14 @@ async def test_delete_other_user_account_returns_404(client: AsyncClient) -> Non
 
     resp = await client.delete(f"{ACCOUNTS_URL}/{account_id}", headers=headers_b)
     assert resp.status_code == 404
+
+
+async def test_create_account_with_client_id(client: AsyncClient, auth_headers: dict) -> None:
+    client_id = str(uuid4())
+    resp = await client.post(
+        ACCOUNTS_URL,
+        headers=auth_headers,
+        json={**VALID_PAYLOAD, "id": client_id},
+    )
+    assert resp.status_code == 201
+    assert resp.json()["id"] == client_id

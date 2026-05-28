@@ -137,7 +137,7 @@ export function AccountsScreen() {
         )}
       </ScrollView>
 
-      <CreateAccountSheet ref={createAccRef} onCreated={() => { Keyboard.dismiss(); refresh(); createAccRef.current?.close() }} onClose={() => { Keyboard.dismiss(); createAccRef.current?.close() }} />
+      <CreateAccountSheet ref={createAccRef} onCreated={() => { Keyboard.dismiss(); createAccRef.current?.close() }} onClose={() => { Keyboard.dismiss(); createAccRef.current?.close() }} />
       <CreateDepositSheet ref={createDepRef} onCreated={() => { Keyboard.dismiss(); refresh(); createDepRef.current?.close() }} onClose={() => { Keyboard.dismiss(); createDepRef.current?.close() }} />
       <AccountEditSheet
         ref={editAccRef}
