@@ -26,6 +26,9 @@ from app.modules.deposits.infrastructure.repository import SQLAlchemyDepositRepo
 from app.modules.stats.domain.interfaces import IStatsRepository
 from app.modules.stats.infrastructure.fake_repository import FakeStatsRepository
 from app.modules.stats.infrastructure.repository import SQLAlchemyStatsRepository
+from app.modules.idempotency.domain.interfaces import IIdempotencyRepository
+from app.modules.idempotency.infrastructure.fake_repository import FakeIdempotencyRepository
+from app.modules.idempotency.infrastructure.repository import SQLAlchemyIdempotencyRepository
 
 _bearer = HTTPBearer()
 
@@ -36,6 +39,7 @@ _fake_account_repo = FakeAccountRepository()
 _fake_transfer_repo = FakeTransferRepository()
 _fake_deposit_repo = FakeDepositRepository()
 _fake_stats_repo = FakeStatsRepository()
+_fake_idempotency_repo = FakeIdempotencyRepository()
 
 
 def get_user_repository(db: AsyncSession = Depends(get_db)) -> IUserRepository:
@@ -78,6 +82,12 @@ def get_stats_repository(db: AsyncSession = Depends(get_db)) -> IStatsRepository
     if settings.use_fake_repo:
         return _fake_stats_repo
     return SQLAlchemyStatsRepository(db)
+
+
+def get_idempotency_repository(db: AsyncSession = Depends(get_db)) -> IIdempotencyRepository:
+    if settings.use_fake_repo:
+        return _fake_idempotency_repo
+    return SQLAlchemyIdempotencyRepository(db)
 
 
 async def get_current_user_id(

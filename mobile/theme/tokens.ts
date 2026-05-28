@@ -28,7 +28,7 @@ const ACCENTS: Record<ThemeName, { accent: string; accent2: string; accent3: str
 
 const DARK_BASE: Omit<ThemeColors, 'accent' | 'accent2' | 'accent3' | 'accentTint' | 'accentShadow'> = {
   bg: '#12151f',
-  surface: '#1a1e2e',
+  surface: '#1a1e2eff',
   surface2: '#222640',
   border: 'rgba(255,255,255,0.08)',
   borderStrong: 'rgba(255,255,255,0.16)',

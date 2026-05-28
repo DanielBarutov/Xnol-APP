@@ -161,7 +161,7 @@ export function HomeScreen() {
             <Bell size={18} color={COLORS.textSecondary} />
           </button>
           <div style={{
-            width: 36, height: 36, borderRadius: '50%',
+            width: 32, height: 36, borderRadius: '50%',
             background: 'var(--accent)',
             display: 'grid', placeItems: 'center',
             fontSize: 14, fontWeight: 700, color: '#fff',

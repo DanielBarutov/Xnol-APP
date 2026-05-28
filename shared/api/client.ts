@@ -24,6 +24,7 @@ export function initApiClient(config: ApiClientConfig) {
 export const api = axios.create({
   baseURL: '',
   headers: { 'Content-Type': 'application/json' },
+  timeout: 8000,
 })
 
 api.interceptors.request.use((axiosConfig) => {

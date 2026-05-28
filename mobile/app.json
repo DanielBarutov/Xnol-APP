@@ -14,7 +14,8 @@
       "adaptiveIcon": {
         "backgroundColor": "#12151f"
       },
-      "package": "com.xnoll.app"
+      "package": "com.xnoll.app",
+      "softwareKeyboardLayoutMode": "pan"
     },
     "plugins": [
       "expo-router",
