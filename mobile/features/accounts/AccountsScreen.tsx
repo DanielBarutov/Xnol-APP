@@ -12,6 +12,7 @@ import { AccountEditSheet } from './AccountEditSheet'
 import { DepositDetailSheet } from './DepositDetailSheet'
 import { DepositEditSheet } from './DepositEditSheet'
 import { TransferSheet } from './TransferSheet'
+import { useMutationQueue } from '../../store/mutationQueue'
 import type { AccountResponse, DepositResponse } from '@xnoll/shared'
 
 const TAG_COLORS = [
@@ -37,6 +38,7 @@ export function AccountsScreen() {
 
   const { data: accounts = [] } = useQuery({ queryKey: ['accounts'], queryFn: accountsApi.list })
   const { data: deposits = [] } = useQuery({ queryKey: ['deposits'], queryFn: depositsApi.list })
+  const queueItems = useMutationQueue(s => s.items)
 
   function refresh() {
     qc.invalidateQueries({ queryKey: ['accounts'] })
@@ -93,7 +95,12 @@ export function AccountsScreen() {
                     <DynIcon name="CreditCard" size={18} color={dotColor} />
                   </View>
                   <View style={styles.rowInfo}>
-                    <Text style={[styles.rowName, { color: colors.textPrimary }]}>{acc.bank_name ?? acc.name}</Text>
+                    <View style={styles.rowNameWrap}>
+                      <Text style={[styles.rowName, { color: colors.textPrimary }]}>{acc.bank_name ?? acc.name}</Text>
+                      {queueItems.some(i => i.type === 'account' && i.id === acc.id) && (
+                        <DynIcon name="Clock" size={14} color={colors.textMuted} />
+                      )}
+                    </View>
                     <Text style={[styles.rowSub, { color: colors.textMuted }]}>{acc.name}</Text>
                   </View>
                   <Text style={[styles.rowBalance, { color: balance < 0 ? colors.expense : colors.textPrimary }]}>
@@ -174,6 +181,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, borderWidth: 1, marginBottom: 8 },
   iconWrap: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   rowInfo: { flex: 1, minWidth: 0 },
+  rowNameWrap: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   rowName: { fontSize: 15, fontWeight: '700' },
   rowSub: { fontSize: 12, marginTop: 2 },
   rowBalance: { fontSize: 15, fontWeight: '700', flexShrink: 0 },
