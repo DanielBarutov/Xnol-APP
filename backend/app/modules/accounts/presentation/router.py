@@ -1,7 +1,12 @@
+import json
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
 
-from app.dependencies import get_account_repository, get_current_user_id
+from app.dependencies import get_account_repository, get_current_user_id, get_idempotency_repository
+from app.modules.idempotency.domain.entities import IdempotencyRecord
+from app.modules.idempotency.domain.interfaces import IIdempotencyRepository
+from app.modules.idempotency.presentation.dependency import IdempotencyContext, get_idempotency_context
 from app.modules.accounts.application.dtos import CreateAccountDTO, UpdateAccountDTO
 from app.modules.accounts.application.use_cases import (
     CreateAccountUseCase,
@@ -46,7 +51,14 @@ async def create_account(
     body: CreateAccountRequest,
     user_id: UUID = Depends(get_current_user_id),
     repo: IAccountRepository = Depends(get_account_repository),
+    idempotency: IdempotencyContext = Depends(get_idempotency_context),
+    idempotency_repo: IIdempotencyRepository = Depends(get_idempotency_repository),
 ) -> AccountResponse:
+    if idempotency.cached:
+        return JSONResponse(
+            content=idempotency.cached.response_body,
+            status_code=idempotency.cached.status_code,
+        )
     dto = await CreateAccountUseCase(repo).execute(
         CreateAccountDTO(
             user_id=user_id,
@@ -56,7 +68,15 @@ async def create_account(
             balance=body.balance,
         )
     )
-    return _map_dto(dto)
+    result = _map_dto(dto)
+    if idempotency.key:
+        await idempotency_repo.save(IdempotencyRecord(
+            user_id=user_id,
+            key=idempotency.key,
+            status_code=status.HTTP_201_CREATED,
+            response_body=json.loads(result.model_dump_json()),
+        ))
+    return result
 
 
 @router.put("/{account_id}", response_model=AccountResponse)

@@ -7,7 +7,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { accountsApi, depositsApi, transfersApi } from '@xnoll/shared'
 import { useTheme } from '../../theme/ThemeProvider'
 import { useUIStore } from '../../store/ui'
-import { useMutationQueue } from '../../store/mutationQueue'
+import { useMutationQueue, genKey } from '../../store/mutationQueue'
 import { useNetworkStatus } from '../../hooks/useNetworkStatus'
 import type { SourceDestType } from '@xnoll/shared'
 
@@ -59,6 +59,7 @@ export const TransferSheet = forwardRef<BottomSheet, Props>(({ onCreated, onClos
   async function handleCreate() {
     if (!fromId || !toId || !amount) { showToast('Заполните все поля', '#f87171'); return }
 
+    const key = genKey()
     const payload = {
       source_type: fromKind as SourceDestType,
       source_id: fromId,
@@ -70,7 +71,7 @@ export const TransferSheet = forwardRef<BottomSheet, Props>(({ onCreated, onClos
     }
 
     if (network !== 'online') {
-      enqueue({ type: 'transfer', payload })
+      enqueue({ id: key, type: 'transfer', payload })
       showToast('Сохранено · отправится при появлении сети', '#f59e0b')
       reset(); onCreated()
       return
@@ -78,14 +79,14 @@ export const TransferSheet = forwardRef<BottomSheet, Props>(({ onCreated, onClos
 
     setLoading(true)
     try {
-      await transfersApi.create(payload)
+      await transfersApi.create(payload, key)
       qc.invalidateQueries({ queryKey: ['transactions'] })
       qc.invalidateQueries({ queryKey: ['accounts'] })
       qc.invalidateQueries({ queryKey: ['transfers'] })
       showToast('Перевод выполнен', '#34d399')
       reset(); onCreated()
     } catch {
-      enqueue({ type: 'transfer', payload })
+      enqueue({ id: key, type: 'transfer', payload })
       showToast('Нет связи · сохранено в очередь', '#f59e0b')
       reset(); onCreated()
     } finally { setLoading(false) }
