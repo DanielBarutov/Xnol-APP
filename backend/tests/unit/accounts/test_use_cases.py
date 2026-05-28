@@ -29,6 +29,22 @@ async def test_create_account() -> None:
     assert dto.currency == "RUB"
 
 
+async def test_create_account_uses_client_provided_id() -> None:
+    repo = FakeAccountRepository()
+    fixed_id = uuid4()
+    dto = await CreateAccountUseCase(repo).execute(
+        CreateAccountDTO(
+            user_id=uuid4(),
+            name="Сбербанк",
+            bank_name="Сбербанк",
+            currency="RUB",
+            balance=Decimal("50000.00"),
+            id=fixed_id,
+        )
+    )
+    assert dto.id == fixed_id
+
+
 async def test_list_returns_only_active() -> None:
     repo = FakeAccountRepository()
     user_id = uuid4()

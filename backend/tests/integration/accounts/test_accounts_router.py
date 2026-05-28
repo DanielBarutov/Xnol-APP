@@ -87,7 +87,6 @@ async def test_delete_other_user_account_returns_404(client: AsyncClient) -> Non
 
 
 async def test_create_account_with_client_id(client: AsyncClient, auth_headers: dict) -> None:
-    from uuid import uuid4
     client_id = str(uuid4())
     resp = await client.post(
         ACCOUNTS_URL,
