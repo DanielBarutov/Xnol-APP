@@ -26,10 +26,14 @@ def fake_idempotency_repo():
 
 
 @pytest.fixture
-async def client(fake_idempotency_repo):
+def fake_category_repo():
+    return FakeCategoryRepository()
+
+
+@pytest.fixture
+async def client(fake_idempotency_repo, fake_category_repo):
     fresh_user_repo = FakeUserRepository()
     fake_account_repo = FakeAccountRepository()
-    fake_category_repo = FakeCategoryRepository()
     fake_transaction_repo = FakeTransactionRepository()
     fake_transfer_repo = FakeTransferRepository()
     fake_deposit_repo = FakeDepositRepository()

@@ -1,15 +1,21 @@
+import json
 from datetime import date
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import JSONResponse
 
 from app.dependencies import (
     get_account_repository,
     get_category_repository,
     get_current_user_id,
+    get_idempotency_repository,
     get_transaction_repository,
 )
 from app.modules.accounts.domain.interfaces import IAccountRepository
 from app.modules.categories.domain.interfaces import ICategoryRepository
+from app.modules.idempotency.domain.entities import IdempotencyRecord
+from app.modules.idempotency.domain.interfaces import IIdempotencyRepository
+from app.modules.idempotency.presentation.dependency import IdempotencyContext, get_idempotency_context
 from app.modules.transactions.application.dtos import CreateTransactionDTO, UpdateTransactionDTO
 from app.modules.transactions.application.use_cases import (
     CreateTransactionUseCase,
@@ -74,7 +80,14 @@ async def create_transaction(
     repo: ITransactionRepository = Depends(get_transaction_repository),
     cat_repo: ICategoryRepository = Depends(get_category_repository),
     account_repo: IAccountRepository = Depends(get_account_repository),
+    idempotency: IdempotencyContext = Depends(get_idempotency_context),
+    idempotency_repo: IIdempotencyRepository = Depends(get_idempotency_repository),
 ) -> TransactionResponse:
+    if idempotency.cached:
+        return JSONResponse(
+            content=idempotency.cached.response_body,
+            status_code=idempotency.cached.status_code,
+        )
     try:
         dto = await CreateTransactionUseCase(repo, cat_repo, account_repo).execute(
             CreateTransactionDTO(
@@ -91,7 +104,15 @@ async def create_transaction(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
     except ConflictError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
-    return _map_dto(dto)
+    result = _map_dto(dto)
+    if idempotency.key:
+        await idempotency_repo.save(IdempotencyRecord(
+            user_id=user_id,
+            key=idempotency.key,
+            status_code=status.HTTP_201_CREATED,
+            response_body=json.loads(result.model_dump_json()),
+        ))
+    return result
 
 
 @router.put("/{transaction_id}", response_model=TransactionResponse)
