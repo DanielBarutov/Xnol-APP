@@ -16,7 +16,7 @@ export interface UpdateCategoryRequest { name?: string; icon?: string; color?: s
 
 // Accounts
 export interface AccountResponse { id: string; user_id: string; name: string; bank_name: string; balance: string; currency: Currency; created_at: string }
-export interface CreateAccountRequest { name: string; bank_name: string; currency: Currency; balance: string }
+export interface CreateAccountRequest { id?: string; name: string; bank_name: string; currency: Currency; balance: string }
 
 // Deposits
 export interface DepositResponse { id: string; user_id: string; name: string; bank_name: string; amount: string; interest_rate: string; interest_type: 'simple' | 'compound'; open_date: string; close_date: string; currency: Currency; auto_renew: boolean; early_closure_rate: string | null; balance: string; status: string; created_at: string }
