@@ -1,7 +1,12 @@
+import json
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
 
-from app.dependencies import get_account_repository, get_current_user_id, get_deposit_repository, get_transfer_repository
+from app.dependencies import get_account_repository, get_current_user_id, get_deposit_repository, get_idempotency_repository, get_transfer_repository
+from app.modules.idempotency.domain.entities import IdempotencyRecord
+from app.modules.idempotency.domain.interfaces import IIdempotencyRepository
+from app.modules.idempotency.presentation.dependency import IdempotencyContext, get_idempotency_context
 from app.modules.accounts.domain.interfaces import IAccountRepository
 from app.modules.deposits.domain.interfaces import IDepositRepository
 from app.modules.transfers.application.dtos import CreateTransferDTO, UpdateTransferDTO
@@ -56,7 +61,14 @@ async def create_transfer(
     repo: ITransferRepository = Depends(get_transfer_repository),
     account_repo: IAccountRepository = Depends(get_account_repository),
     deposit_repo: IDepositRepository = Depends(get_deposit_repository),
+    idempotency: IdempotencyContext = Depends(get_idempotency_context),
+    idempotency_repo: IIdempotencyRepository = Depends(get_idempotency_repository),
 ) -> TransferResponse:
+    if idempotency.cached:
+        return JSONResponse(
+            content=idempotency.cached.response_body,
+            status_code=idempotency.cached.status_code,
+        )
     try:
         dto = await CreateTransferUseCase(repo, account_repo, deposit_repo).execute(
             CreateTransferDTO(
@@ -70,7 +82,15 @@ async def create_transfer(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
     except ConflictError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
-    return _map_dto(dto)
+    result = _map_dto(dto)
+    if idempotency.key:
+        await idempotency_repo.save(IdempotencyRecord(
+            user_id=user_id,
+            key=idempotency.key,
+            status_code=status.HTTP_201_CREATED,
+            response_body=json.loads(result.model_dump_json()),
+        ))
+    return result
 
 
 @router.put("/{transfer_id}", response_model=TransferResponse)
