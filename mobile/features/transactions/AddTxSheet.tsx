@@ -1,13 +1,12 @@
 import { forwardRef, useState, useEffect, useCallback, useRef, useImperativeHandle } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Dimensions } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native'
 import BottomSheet, { BottomSheetView, BottomSheetScrollView, BottomSheetTextInput, BottomSheetBackdrop, BottomSheetFooter } from '@gorhom/bottom-sheet'
 import type { BottomSheetBackdropProps, BottomSheetFooterProps } from '@gorhom/bottom-sheet'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { transactionsApi, accountsApi, categoriesApi } from '@xnoll/shared'
+import { accountsApi, categoriesApi } from '@xnoll/shared'
 import { useTheme } from '../../theme/ThemeProvider'
 import { useUIStore } from '../../store/ui'
-import { useMutationQueue, genKey } from '../../store/mutationQueue'
-import { useNetworkStatus } from '../../hooks/useNetworkStatus'
+import { useMutationQueue, genId, patchBalance } from '../../store/mutationQueue'
 import { DynIcon } from '../../components/DynIcon'
 import type { TransactionType, CategoryResponse } from '@xnoll/shared'
 
@@ -34,7 +33,6 @@ export const AddTxSheet = forwardRef<BottomSheet, Props>(({ onCreated, onClose }
   const qc = useQueryClient()
   const showToast = useUIStore((s) => s.showToast)
   const modal = useUIStore((s) => s.modal)
-  const network = useNetworkStatus()
   const enqueue = useMutationQueue((s) => s.add)
 
   const sheetRef = useRef<BottomSheet>(null)
@@ -46,7 +44,6 @@ export const AddTxSheet = forwardRef<BottomSheet, Props>(({ onCreated, onClose }
   const [categoryId, setCategoryId] = useState<string | null>(null)
   const [accountId, setAccountId] = useState<string | null>(null)
   const [comment, setComment] = useState('')
-  const [loading, setLoading] = useState(false)
 
   const { data: accounts = [] } = useQuery({ queryKey: ['accounts'], queryFn: accountsApi.list })
   const { data: categories = [] } = useQuery({ queryKey: ['categories'], queryFn: categoriesApi.list })
@@ -96,10 +93,10 @@ export const AddTxSheet = forwardRef<BottomSheet, Props>(({ onCreated, onClose }
     }
   }
 
-  async function handleCreate() {
+  function handleCreate() {
     if (!accountId) { showToast('Выберите счёт', '#f87171'); return }
 
-    const key = genKey()
+    const id = genId()
     const payload = {
       account_id: accountId,
       category_id: categoryId!,
@@ -109,31 +106,11 @@ export const AddTxSheet = forwardRef<BottomSheet, Props>(({ onCreated, onClose }
       description: comment || undefined,
     }
 
-    if (network !== 'online') {
-      enqueue({ id: key, type: 'transaction', payload })
-      showToast('Сохранено · отправится при появлении сети', '#f59e0b')
-      reset()
-      onCreated?.()
-      return
-    }
-
-    setLoading(true)
-    try {
-      await transactionsApi.create(payload, key)
-      qc.invalidateQueries({ queryKey: ['transactions'] })
-      qc.invalidateQueries({ queryKey: ['accounts'] })
-      qc.invalidateQueries({ queryKey: ['stats'] })
-      showToast('Транзакция добавлена', '#34d399')
-      reset()
-      onCreated?.()
-    } catch {
-      enqueue({ id: key, type: 'transaction', payload })
-      showToast('Нет связи · сохранено в очередь', '#f59e0b')
-      reset()
-      onCreated?.()
-    } finally {
-      setLoading(false)
-    }
+    enqueue({ id, type: 'transaction', payload })
+    patchBalance(qc, accountId, type === 'income' ? parseFloat(amount) : -parseFloat(amount))
+    showToast('Добавлено', '#34d399')
+    reset()
+    onCreated?.()
   }
 
   const renderBackdrop = useCallback(
@@ -156,21 +133,15 @@ export const AddTxSheet = forwardRef<BottomSheet, Props>(({ onCreated, onClose }
             <TouchableOpacity
               style={[styles.nextBtn, { backgroundColor: enabled ? accent : colors.surface2 }]}
               onPress={isStep2 ? handleNext : handleCreate}
-              disabled={loading}
             >
-              {loading && !isStep2
-                ? <ActivityIndicator color="#fff" />
-                : <>
-                    <Text style={[styles.nextBtnText, { color: enabled ? '#fff' : colors.textMuted }]}>{label}</Text>
-                    <DynIcon name={icon} size={18} color={enabled ? '#fff' : colors.textMuted} />
-                  </>
-              }
+              <Text style={[styles.nextBtnText, { color: enabled ? '#fff' : colors.textMuted }]}>{label}</Text>
+              <DynIcon name={icon} size={18} color={enabled ? '#fff' : colors.textMuted} />
             </TouchableOpacity>
           </View>
         </BottomSheetFooter>
       )
     },
-    [step, categoryId, accountId, accent, colors, loading, handleNext, handleCreate],
+    [step, categoryId, accountId, accent, colors, handleNext, handleCreate],
   )
 
   const stepLabels = ['Сумма', 'Категория', 'Счёт']

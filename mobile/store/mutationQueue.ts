@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import type { CreateTransactionRequest, CreateTransferRequest, CreateAccountRequest } from '@xnoll/shared'
+import type { QueryClient } from '@tanstack/react-query'
+import type { CreateTransactionRequest, CreateTransferRequest, CreateAccountRequest, AccountResponse } from '@xnoll/shared'
 
 export type QueueItem =
   | { id: string; type: 'transaction'; payload: CreateTransactionRequest; queuedAt: string }
@@ -34,6 +35,16 @@ export const useMutationQueue = create<MutationQueueState>()(
   ),
 )
 
-export function genKey(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+export function genId(): string {
+  return crypto.randomUUID()
+}
+
+export function patchBalance(qc: QueryClient, accountId: string, delta: number): void {
+  qc.setQueryData<AccountResponse[]>(['accounts'], (accounts = []) =>
+    accounts.map(a =>
+      a.id === accountId
+        ? { ...a, balance: (parseFloat(a.balance) + delta).toFixed(2) }
+        : a
+    )
+  )
 }
