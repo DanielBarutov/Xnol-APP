@@ -21,8 +21,8 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     op.create_table(
         "idempotency_keys",
-        sa.Column("id", sa.UUID(), nullable=False),
-        sa.Column("user_id", sa.UUID(), nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column("user_id", sa.Uuid(), nullable=False),
         sa.Column("key", sa.String(128), nullable=False),
         sa.Column("status_code", sa.Integer(), nullable=False),
         sa.Column("response_body", sa.JSON(), nullable=False),
@@ -31,9 +31,9 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("user_id", "key", name="uq_idempotency_user_key"),
     )
-    op.create_index("ix_idempotency_keys_user_id", "idempotency_keys", ["user_id"])
+    op.create_index(op.f("ix_idempotency_keys_user_id"), "idempotency_keys", ["user_id"])
 
 
 def downgrade() -> None:
-    op.drop_index("ix_idempotency_keys_user_id", table_name="idempotency_keys")
+    op.drop_index(op.f("ix_idempotency_keys_user_id"), table_name="idempotency_keys")
     op.drop_table("idempotency_keys")
