@@ -35,23 +35,24 @@ async def user_cat(repo, user_id):
 
 
 @pytest.mark.asyncio
-async def test_list_returns_system_and_own(repo, user_id, system_cat, user_cat):
+async def test_list_returns_only_own(repo, user_id, system_cat, user_cat):
     other_user_cat = Category(name="Чужая", type="expense", icon="x", color="#000", user_id=uuid4())
     await repo.create(other_user_cat)
     result = await ListCategoriesUseCase(repo).execute(user_id)
     ids = {c.id for c in result}
-    assert system_cat.id in ids
+    # system categories (user_id=None) are no longer returned
+    assert system_cat.id not in ids
     assert user_cat.id in ids
     assert other_user_cat.id not in ids
 
 
 @pytest.mark.asyncio
-async def test_list_returns_nested_tree(repo, user_id, system_cat):
-    child = Category(name="Рестораны", type="expense", icon="fork", color="#f97316",
-                     user_id=user_id, parent_id=system_cat.id)
+async def test_list_returns_nested_tree(repo, user_id, user_cat):
+    child = Category(name="Подкат", type="expense", icon="fork", color="#f97316",
+                     user_id=user_id, parent_id=user_cat.id)
     await repo.create(child)
     result = await ListCategoriesUseCase(repo).execute(user_id)
-    parent = next(c for c in result if c.id == system_cat.id)
+    parent = next(c for c in result if c.id == user_cat.id)
     assert len(parent.children) == 1
     assert parent.children[0].id == child.id
 
@@ -119,6 +120,18 @@ async def test_delete_system_category_raises(repo, user_id, system_cat):
 
 
 @pytest.mark.asyncio
+async def test_delete_user_owned_system_category_succeeds(repo, user_id):
+    user_sys_cat = Category(
+        name="Зарплата", type="income", icon="Briefcase", color="#22c55e",
+        user_id=user_id, is_system=True,
+    )
+    await repo.create(user_sys_cat)
+    await DeleteCategoryUseCase(repo).execute(user_sys_cat.id, user_id)
+    cat = await repo.find_by_id(user_sys_cat.id)
+    assert cat.deleted_at is not None
+
+
+@pytest.mark.asyncio
 async def test_delete_with_children_raises(repo, user_id, user_cat):
     child = Category(name="Child", type="expense", icon="x", color="#fff",
                      user_id=user_id, parent_id=user_cat.id)
@@ -128,10 +141,11 @@ async def test_delete_with_children_raises(repo, user_id, user_cat):
 
 
 @pytest.mark.asyncio
-async def test_delete_with_transactions_raises(repo, user_id, user_cat):
+async def test_delete_with_transactions_succeeds(repo, user_id, user_cat):
     repo._transaction_counts[user_cat.id] = 3
-    with pytest.raises(ConflictError):
-        await DeleteCategoryUseCase(repo).execute(user_cat.id, user_id)
+    await DeleteCategoryUseCase(repo).execute(user_cat.id, user_id)
+    cat = await repo.find_by_id(user_cat.id)
+    assert cat.deleted_at is not None
 
 
 @pytest.mark.asyncio

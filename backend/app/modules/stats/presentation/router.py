@@ -25,7 +25,7 @@ router = APIRouter(prefix="/api/v1/stats", tags=["stats"])
 
 
 def resolve_period(
-    period: Annotated[str | None, Query(pattern="^(this_month|prev_month|this_year)$")] = None,
+    period: Annotated[str | None, Query(pattern=r"^(this_month|prev_month|this_year|day)$")] = None,
     date_from: date | None = None,
     date_to: date | None = None,
 ) -> tuple[date, date]:
@@ -55,6 +55,8 @@ def resolve_period(
     elif target == "prev_month":
         last_prev = date(today.year, today.month, 1) - timedelta(days=1)
         return date(last_prev.year, last_prev.month, 1), last_prev
+    elif target == "day":
+        return today, today
     else:  # this_year
         return date(today.year, 1, 1), date(today.year, 12, 31)
 

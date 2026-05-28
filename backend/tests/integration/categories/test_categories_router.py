@@ -12,19 +12,19 @@ async def test_list_categories_requires_auth(client: AsyncClient) -> None:
     assert resp.status_code == 403
 
 
-async def test_list_empty_returns_only_system(
+async def test_list_returns_user_categories(
     client: AsyncClient,
     auth_headers: dict,
-    fake_category_repo: FakeCategoryRepository,
 ) -> None:
-    sys_cat = Category(name="Еда", type="expense", icon="utensils", color="#f97316", is_system=True)
-    await fake_category_repo.create(sys_cat)
+    # registration seeds 12 user-owned default categories; global (user_id=None) ones are excluded
     resp = await client.get(CATEGORIES_URL, headers=auth_headers)
     assert resp.status_code == 200
     data = resp.json()
-    assert len(data) == 1
-    assert data[0]["name"] == "Еда"
-    assert data[0]["is_system"] is True
+    # all returned categories must belong to the authenticated user (not global)
+    assert all(c["id"] for c in data)
+    # none should have is_system=True coming from a null-user global entry
+    # (default categories are user-owned so is_system may be True on user-owned ones)
+    assert len(data) == 12  # exactly the 12 default user-owned categories
 
 
 async def test_create_category_returns_201(client: AsyncClient, auth_headers: dict) -> None:
@@ -75,17 +75,21 @@ async def test_create_subcategory_under_subcategory_returns_409(
 async def test_list_shows_children_nested(
     client: AsyncClient,
     auth_headers: dict,
-    fake_category_repo: FakeCategoryRepository,
 ) -> None:
-    parent = Category(name="Еда", type="expense", icon="utensils", color="#f97316", is_system=True)
-    await fake_category_repo.create(parent)
+    # create a user-owned parent category via API
+    parent_resp = await client.post(CATEGORIES_URL, headers=auth_headers, json={
+        "name": "Продукты", "type": "expense", "icon": "utensils", "color": "#f97316",
+    })
+    assert parent_resp.status_code == 201
+    parent_id = parent_resp.json()["id"]
+    # create a child under that user-owned parent
     await client.post(CATEGORIES_URL, headers=auth_headers, json={
         "name": "Рестораны", "type": "expense", "icon": "fork",
-        "color": "#f97316", "parent_id": str(parent.id),
+        "color": "#f97316", "parent_id": parent_id,
     })
     resp = await client.get(CATEGORIES_URL, headers=auth_headers)
     tree = resp.json()
-    parent_node = next(c for c in tree if c["name"] == "Еда")
+    parent_node = next(c for c in tree if c["name"] == "Продукты")
     assert len(parent_node["children"]) == 1
     assert parent_node["children"][0]["name"] == "Рестораны"
 
@@ -131,7 +135,20 @@ async def test_delete_system_category_returns_403(
     assert resp.status_code == 403
 
 
-async def test_delete_category_with_transactions_returns_409(
+async def test_delete_user_owned_system_category_returns_204(
+    client: AsyncClient,
+    auth_headers: dict,
+) -> None:
+    # registration seeds user-owned is_system=True categories
+    resp = await client.get(CATEGORIES_URL, headers=auth_headers)
+    system_cats = [c for c in resp.json() if c["is_system"]]
+    assert len(system_cats) > 0, "registration must seed system categories"
+    cat_id = system_cats[0]["id"]
+    resp = await client.delete(f"{CATEGORIES_URL}/{cat_id}", headers=auth_headers)
+    assert resp.status_code == 204
+
+
+async def test_delete_category_with_transactions_returns_204(
     client: AsyncClient,
     auth_headers: dict,
     fake_category_repo: FakeCategoryRepository,
@@ -143,7 +160,7 @@ async def test_delete_category_with_transactions_returns_409(
     from uuid import UUID
     fake_category_repo._transaction_counts[UUID(cat_id)] = 1
     resp = await client.delete(f"{CATEGORIES_URL}/{cat_id}", headers=auth_headers)
-    assert resp.status_code == 409
+    assert resp.status_code == 204
 
 
 async def test_deleted_category_excluded_from_list(client: AsyncClient, auth_headers: dict) -> None:

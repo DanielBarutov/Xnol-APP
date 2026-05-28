@@ -14,6 +14,7 @@ from app.modules.transactions.application.dtos import CreateTransactionDTO, Upda
 from app.modules.transactions.application.use_cases import (
     CreateTransactionUseCase,
     DeleteTransactionUseCase,
+    GetTransactionUseCase,
     ListTransactionsUseCase,
     UpdateTransactionUseCase,
 )
@@ -51,6 +52,19 @@ async def list_transactions(
 ) -> list[TransactionResponse]:
     dtos = await ListTransactionsUseCase(repo).execute(user_id, date_from, date_to)
     return [_map_dto(d) for d in dtos]
+
+
+@router.get("/{transaction_id}", response_model=TransactionResponse)
+async def get_transaction(
+    transaction_id: UUID,
+    user_id: UUID = Depends(get_current_user_id),
+    repo: ITransactionRepository = Depends(get_transaction_repository),
+) -> TransactionResponse:
+    try:
+        dto = await GetTransactionUseCase(repo).execute(transaction_id, user_id)
+    except NotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    return _map_dto(dto)
 
 
 @router.post("", response_model=TransactionResponse, status_code=status.HTTP_201_CREATED)

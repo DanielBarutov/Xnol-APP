@@ -100,12 +100,8 @@ class DeleteCategoryUseCase:
         cat = await self._repo.find_by_id(category_id)
         if cat is None:
             raise NotFoundError("Category", str(category_id))
-        if cat.is_system:
-            raise AuthorizationError("Cannot delete system category")
         if cat.user_id != user_id:
             raise AuthorizationError()
         if await self._repo.has_active_children(category_id):
             raise ConflictError("Category has subcategories -- delete them first")
-        if await self._repo.count_transactions(category_id) > 0:
-            raise ConflictError("Category is used by transactions")
         await self._repo.soft_delete(category_id, datetime.now(timezone.utc))

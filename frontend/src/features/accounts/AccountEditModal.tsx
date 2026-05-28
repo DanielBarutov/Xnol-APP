@@ -17,16 +17,22 @@ export function AccountEditModal() {
 
   const [bankName, setBankName] = useState('')
   const [name, setName] = useState('')
+  const [balance, setBalance] = useState('')
 
   useEffect(() => {
     if (account) {
       setBankName(account.bank_name)
       setName(account.name)
+      setBalance(account.balance)
     }
   }, [account])
 
   const saveMutation = useMutation({
-    mutationFn: () => accountsApi.update(accountId, { bank_name: bankName, name }),
+    mutationFn: () => accountsApi.update(accountId, {
+      bank_name: bankName,
+      name,
+      balance: balance || undefined,
+    }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['accounts'] })
       showToast('Счёт обновлён', COLORS.income)
@@ -70,12 +76,23 @@ export function AccountEditModal() {
           />
         </div>
 
-        <div style={{ marginBottom: 24 }}>
+        <div style={{ marginBottom: 14 }}>
           <div style={labelStyle}>Название</div>
           <input
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder="Основной"
+            style={inputStyle}
+          />
+        </div>
+
+        <div style={{ marginBottom: 24 }}>
+          <div style={labelStyle}>Начальный остаток</div>
+          <input
+            type="number"
+            value={balance}
+            onChange={e => setBalance(e.target.value)}
+            placeholder="0.00"
             style={inputStyle}
           />
         </div>

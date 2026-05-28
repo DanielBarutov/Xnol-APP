@@ -14,7 +14,7 @@ class FakeCategoryRepository(ICategoryRepository):
     async def list_for_user(self, user_id: UUID) -> list[Category]:
         return [
             c for c in self._store.values()
-            if c.deleted_at is None and (c.user_id is None or c.user_id == user_id)
+            if c.deleted_at is None and c.user_id == user_id
         ]
 
     async def find_by_id(self, category_id: UUID) -> Category | None:

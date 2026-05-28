@@ -63,3 +63,9 @@ class CloseDepositDTO:
     user_id: UUID
     close_type: Literal["closed", "early_closed"]
     actual_close_date: date
+
+
+@dataclass
+class GetDepositDTO:
+    deposit_id: UUID
+    user_id: UUID

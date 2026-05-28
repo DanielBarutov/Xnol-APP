@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { Tag, Sun, Moon } from 'lucide-react'
+import { Tag, Sun, Moon, List } from 'lucide-react'
 import { useUIStore } from '../../store/ui'
 import { useAuthStore } from '../../store/auth'
 import { THEMES, COLORS } from '../../shared/tokens'
@@ -83,6 +83,9 @@ export function ProfileScreen() {
           <div style={{ width: 44, height: 26, borderRadius: 99, background: balanceVisible ? COLORS.border : 'var(--accent)', transition: 'background 0.2s', position: 'relative' }}>
             <div style={{ position: 'absolute', top: 3, left: balanceVisible ? 3 : 21, width: 20, height: 20, borderRadius: 99, background: '#fff', transition: 'left 0.2s' }} />
           </div>
+        </button>
+        <button onClick={() => openModal('all-transactions')} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '14px 16px', background: 'none', border: 0, borderBottom: `1px solid ${COLORS.border}`, cursor: 'pointer', color: COLORS.textSecondary }}>
+          <List size={16} /><span style={{ fontSize: 14 }}>Все операции</span>
         </button>
         <button onClick={() => openModal('categories')} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '14px 16px', background: 'none', border: 0, borderBottom: `1px solid ${COLORS.border}`, cursor: 'pointer', color: COLORS.textSecondary }}>
           <Tag size={16} /><span style={{ fontSize: 14 }}>Категории</span>

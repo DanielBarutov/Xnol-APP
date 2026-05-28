@@ -81,3 +81,17 @@ async def test_refresh_returns_new_tokens(client: AsyncClient) -> None:
     assert "access_token" in body
     assert "refresh_token" in body
     assert body["token_type"] == "bearer"
+
+
+async def test_register_creates_default_categories(
+    client: AsyncClient, fake_category_repo
+) -> None:
+    await client.post("/api/v1/auth/register", json={
+        "email": "newuser@example.com", "password": "pass1234",
+        "full_name": "New User", "primary_currency": "RUB",
+    })
+    # FakeCategoryRepository stores categories in _store (dict[UUID, Category])
+    categories = list(fake_category_repo._store.values())
+    assert len(categories) == 12
+    assert all(c.is_system for c in categories)
+    assert all(c.user_id is not None for c in categories)

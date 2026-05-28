@@ -11,6 +11,7 @@ from app.modules.transactions.application.dtos import CreateTransactionDTO, Upda
 from app.modules.transactions.application.use_cases import (
     CreateTransactionUseCase,
     DeleteTransactionUseCase,
+    GetTransactionUseCase,
     ListTransactionsUseCase,
     UpdateTransactionUseCase,
 )
@@ -269,3 +270,36 @@ async def test_delete_other_user_transaction_raises(
     txn = await CreateTransactionUseCase(txn_repo, cat_repo, account_repo).execute(create_dto)
     with pytest.raises(AuthorizationError):
         await DeleteTransactionUseCase(txn_repo, account_repo).execute(txn.id, uuid4())
+
+
+@pytest.mark.asyncio
+async def test_get_transaction_by_id(txn_repo, cat_repo, account_repo, user_id, active_account, active_cat):
+    create_dto = CreateTransactionDTO(
+        user_id=user_id, account_id=active_account.id,
+        category_id=active_cat.id, type="income",
+        amount=Decimal("500.00"), date=date(2026, 5, 1),
+    )
+    txn = await CreateTransactionUseCase(txn_repo, cat_repo, account_repo).execute(create_dto)
+    result = await GetTransactionUseCase(txn_repo).execute(txn.id, user_id)
+    assert result.id == txn.id
+    assert result.amount == Decimal("500.00")
+
+
+@pytest.mark.asyncio
+async def test_get_transaction_not_found_raises(txn_repo, user_id):
+    from app.shared.exceptions import NotFoundError
+    with pytest.raises(NotFoundError):
+        await GetTransactionUseCase(txn_repo).execute(uuid4(), user_id)
+
+
+@pytest.mark.asyncio
+async def test_get_transaction_wrong_user_raises(txn_repo, cat_repo, account_repo, user_id, active_account, active_cat):
+    from app.shared.exceptions import NotFoundError
+    create_dto = CreateTransactionDTO(
+        user_id=user_id, account_id=active_account.id,
+        category_id=active_cat.id, type="expense",
+        amount=Decimal("100"), date=date(2026, 5, 1),
+    )
+    txn = await CreateTransactionUseCase(txn_repo, cat_repo, account_repo).execute(create_dto)
+    with pytest.raises(NotFoundError):
+        await GetTransactionUseCase(txn_repo).execute(txn.id, uuid4())

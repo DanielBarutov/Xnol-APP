@@ -272,3 +272,25 @@ async def test_delete_other_user_transaction_returns_404(
     txn_id = create_resp.json()["id"]
     resp = await client.delete(f"{TRANSACTIONS_URL}/{txn_id}", headers=headers_b)
     assert resp.status_code == 404
+
+
+async def test_get_transaction_by_id_returns_200(
+    client: AsyncClient, auth_headers: dict, fake_category_repo: FakeCategoryRepository
+) -> None:
+    acc_id = await _make_account(client, auth_headers)
+    cat_id = await _make_cat(fake_category_repo)
+    create_resp = await client.post(TRANSACTIONS_URL, headers=auth_headers, json={
+        "account_id": acc_id, "category_id": cat_id,
+        "type": "income", "amount": "300", "date": "2026-05-01",
+    })
+    txn_id = create_resp.json()["id"]
+    resp = await client.get(f"{TRANSACTIONS_URL}/{txn_id}", headers=auth_headers)
+    assert resp.status_code == 200
+    assert resp.json()["id"] == txn_id
+
+
+async def test_get_transaction_not_found_returns_404(
+    client: AsyncClient, auth_headers: dict
+) -> None:
+    resp = await client.get(f"{TRANSACTIONS_URL}/{uuid4()}", headers=auth_headers)
+    assert resp.status_code == 404

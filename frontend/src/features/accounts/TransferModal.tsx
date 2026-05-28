@@ -3,7 +3,6 @@ import { Modal } from '../../shared/components/Modal'
 import { useUIStore } from '../../store/ui'
 import { useAccounts, useCreateTransfer } from './hooks/useAccounts'
 import { COLORS } from '../../shared/tokens'
-import { Icons } from '../../shared/icons'
 
 export function TransferModal() {
   const { modal, closeModal } = useUIStore()

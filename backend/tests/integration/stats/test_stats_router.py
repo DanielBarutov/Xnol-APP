@@ -200,3 +200,17 @@ async def test_accounts_empty_period(
     resp = await client.get(ACCOUNTS_URL, headers=auth_headers)
     assert resp.status_code == 200
     assert resp.json()["accounts"] == []
+
+
+async def test_categories_day_period(
+    client: AsyncClient, auth_headers: dict, fake_stats_repo: FakeStatsRepository
+) -> None:
+    fake_stats_repo.seed_category_rows([])
+    resp = await client.get(
+        CATEGORIES_URL, headers=auth_headers, params={"period": "day"}
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    today = date.today().isoformat()
+    assert data["date_from"] == today
+    assert data["date_to"] == today

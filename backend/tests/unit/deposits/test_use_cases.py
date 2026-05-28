@@ -126,3 +126,40 @@ async def test_close_other_user_deposit_raises() -> None:
             CloseDepositDTO(deposit_id=created.id, user_id=user_b,
                             close_type="closed", actual_close_date=CLOSE_DATE)
         )
+
+
+async def create_deposit(repo, user_id):
+    return await CreateDepositUseCase(repo).execute(_make_dto(user_id))
+
+
+@pytest.mark.asyncio
+async def test_get_deposit_by_id() -> None:
+    from app.modules.deposits.application.use_cases import GetDepositUseCase
+    from app.modules.deposits.application.dtos import GetDepositDTO
+    repo = FakeDepositRepository()
+    user_id = uuid4()
+    deposit = await create_deposit(repo, user_id)
+    result = await GetDepositUseCase(repo).execute(GetDepositDTO(deposit_id=deposit.id, user_id=user_id))
+    assert result.id == deposit.id
+    assert result.name == deposit.name
+
+
+@pytest.mark.asyncio
+async def test_get_deposit_not_found_raises() -> None:
+    from app.modules.deposits.application.use_cases import GetDepositUseCase
+    from app.modules.deposits.application.dtos import GetDepositDTO
+    repo = FakeDepositRepository()
+    user_id = uuid4()
+    with pytest.raises(NotFoundError):
+        await GetDepositUseCase(repo).execute(GetDepositDTO(deposit_id=uuid4(), user_id=user_id))
+
+
+@pytest.mark.asyncio
+async def test_get_deposit_wrong_user_raises() -> None:
+    from app.modules.deposits.application.use_cases import GetDepositUseCase
+    from app.modules.deposits.application.dtos import GetDepositDTO
+    repo = FakeDepositRepository()
+    user_id = uuid4()
+    deposit = await create_deposit(repo, user_id)
+    with pytest.raises(NotFoundError):
+        await GetDepositUseCase(repo).execute(GetDepositDTO(deposit_id=deposit.id, user_id=uuid4()))

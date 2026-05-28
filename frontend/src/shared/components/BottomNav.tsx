@@ -11,16 +11,21 @@ const TABS = [
 ]
 
 export function BottomNav() {
-  const openModal = useUIStore((s) => s.openModal)
+  const openModal  = useUIStore((s) => s.openModal)
+  const themeMode  = useUIStore((s) => s.themeMode)
+  const isLight = themeMode === 'light'
 
   return (
     <div style={{
       position: 'fixed', left: 0, right: 0, bottom: 0,
       paddingBottom: 'env(safe-area-inset-bottom, 20px)', paddingTop: 10,
-      background: 'linear-gradient(to top, rgba(8,10,20,0.97) 60%, rgba(8,10,20,0))',
+      background: isLight
+        ? 'var(--color-surface)'
+        : 'linear-gradient(to top, rgba(8,10,20,0.97) 60%, rgba(8,10,20,0))',
       backdropFilter: 'blur(20px)',
       display: 'grid', gridTemplateColumns: 'repeat(5,1fr)',
       borderTop: `1px solid ${COLORS.border}`,
+      boxShadow: isLight ? '0 -4px 16px rgba(0,0,0,0.06)' : 'none',
       zIndex: 30,
     }}>
       {TABS.slice(0, 2).map(tab => <NavItem key={tab.to} {...tab} />)}

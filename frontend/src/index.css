@@ -14,7 +14,7 @@
 html, body, #root {
   margin: 0; padding: 0;
   height: 100%; overflow: hidden;
-  background: #04060d;
+  background: #12151f;
   color: #e6e9f2;
   font-family: -apple-system, 'SF Pro Display', 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -28,9 +28,9 @@ html, body, #root {
 @keyframes xn-toast { from { opacity: 0; transform: translate(-50%, 10px) } to { opacity: 1; transform: translate(-50%, 0) } }
 
 :root[data-theme="dark"] {
-  --color-bg: #04060d;
-  --color-surface: #0a0e1a;
-  --color-surface2: #131826;
+  --color-bg: #12151f;
+  --color-surface: #1a1e2e;
+  --color-surface2: #21263a;
   --color-border: rgba(255,255,255,0.06);
   --color-border-strong: rgba(255,255,255,0.10);
   --color-text-primary: #e6e9f2;

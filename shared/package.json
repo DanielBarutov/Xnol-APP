@@ -1,0 +1,13 @@
+{
+  "name": "@xnoll/shared",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.ts",
+  "types": "index.ts",
+  "peerDependencies": {
+    "axios": ">=1.0.0"
+  },
+  "devDependencies": {
+    "axios": "^1.16.1"
+  }
+}

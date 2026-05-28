@@ -176,33 +176,32 @@ export function CategoryManageModal() {
                   <span style={{ fontSize: 14, fontWeight: 600, color: COLORS.textPrimary, flex: 1 }}>
                     {cat.name}
                   </span>
-                  {cat.is_system ? (
-                    <span style={{ fontSize: 11, color: COLORS.textMuted }}>системная</span>
-                  ) : (
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      <button
-                        onClick={() => {
-                          setEditing(cat.id)
-                          setEditName(cat.name)
-                          setEditIcon(cat.icon)
-                          setEditColor(cat.color)
-                        }}
-                        style={{ background: 'none', border: 0, cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', color: COLORS.textSecondary }}
-                      >
-                        <Edit size={15} />
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (window.confirm(`Удалить категорию «${cat.name}»?`)) {
-                            deleteMutation.mutate(cat.id)
-                          }
-                        }}
-                        style={{ background: 'none', border: 0, cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', color: COLORS.expense }}
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    {cat.is_system && (
+                      <span style={{ fontSize: 10, color: COLORS.textMuted, marginRight: 2 }}>sys</span>
+                    )}
+                    <button
+                      onClick={() => {
+                        setEditing(cat.id)
+                        setEditName(cat.name)
+                        setEditIcon(cat.icon)
+                        setEditColor(cat.color)
+                      }}
+                      style={{ background: 'none', border: 0, cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', color: COLORS.textSecondary }}
+                    >
+                      <Edit size={15} />
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (window.confirm(`Удалить категорию «${cat.name}»?`)) {
+                          deleteMutation.mutate(cat.id)
+                        }
+                      }}
+                      style={{ background: 'none', border: 0, cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', color: COLORS.expense }}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
                 </div>
               ))}
               {filtered.length === 0 && (
