@@ -5,6 +5,7 @@ from app.main import app
 from app.dependencies import (
     get_account_repository,
     get_category_repository,
+    get_deposit_repository,
     get_idempotency_repository,
     get_transaction_repository,
     get_transfer_repository,
@@ -15,6 +16,7 @@ from app.modules.accounts.infrastructure.fake_repository import FakeAccountRepos
 from app.modules.categories.infrastructure.fake_repository import FakeCategoryRepository
 from app.modules.transactions.infrastructure.fake_repository import FakeTransactionRepository
 from app.modules.transfers.infrastructure.fake_repository import FakeTransferRepository
+from app.modules.deposits.infrastructure.fake_repository import FakeDepositRepository
 from app.modules.idempotency.infrastructure.fake_repository import FakeIdempotencyRepository
 
 
@@ -30,11 +32,13 @@ async def client(fake_idempotency_repo):
     fake_category_repo = FakeCategoryRepository()
     fake_transaction_repo = FakeTransactionRepository()
     fake_transfer_repo = FakeTransferRepository()
+    fake_deposit_repo = FakeDepositRepository()
     app.dependency_overrides[get_user_repository] = lambda: fresh_user_repo
     app.dependency_overrides[get_account_repository] = lambda: fake_account_repo
     app.dependency_overrides[get_category_repository] = lambda: fake_category_repo
     app.dependency_overrides[get_transaction_repository] = lambda: fake_transaction_repo
     app.dependency_overrides[get_transfer_repository] = lambda: fake_transfer_repo
+    app.dependency_overrides[get_deposit_repository] = lambda: fake_deposit_repo
     app.dependency_overrides[get_idempotency_repository] = lambda: fake_idempotency_repo
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac

@@ -2,6 +2,7 @@ import uuid
 from uuid import UUID
 
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.idempotency.domain.entities import IdempotencyRecord
@@ -32,8 +33,9 @@ class SQLAlchemyIdempotencyRepository(IIdempotencyRepository):
         )
 
     async def save(self, record: IdempotencyRecord) -> None:
-        self._session.add(
-            IdempotencyKeyModel(
+        stmt = (
+            insert(IdempotencyKeyModel)
+            .values(
                 id=uuid.uuid4(),
                 user_id=record.user_id,
                 key=record.key,
@@ -41,5 +43,6 @@ class SQLAlchemyIdempotencyRepository(IIdempotencyRepository):
                 response_body=record.response_body,
                 created_at=record.created_at,
             )
+            .on_conflict_do_nothing(constraint="uq_idempotency_user_key")
         )
-        await self._session.flush()
+        await self._session.execute(stmt)
