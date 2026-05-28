@@ -10,7 +10,7 @@ export type QueueItem =
 
 interface MutationQueueState {
   items: QueueItem[]
-  add: (item: Omit<QueueItem, 'id' | 'queuedAt'>) => void
+  add: (item: Omit<QueueItem, 'queuedAt'>) => void
   remove: (id: string) => void
 }
 
@@ -22,7 +22,7 @@ export const useMutationQueue = create<MutationQueueState>()(
         set(s => ({
           items: [
             ...s.items,
-            { ...item, id: `${Date.now()}-${Math.random()}`, queuedAt: new Date().toISOString() } as QueueItem,
+            { ...item, queuedAt: new Date().toISOString() } as QueueItem,
           ],
         })),
       remove: (id) => set(s => ({ items: s.items.filter(i => i.id !== id) })),
@@ -33,3 +33,7 @@ export const useMutationQueue = create<MutationQueueState>()(
     },
   ),
 )
+
+export function genKey(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+}

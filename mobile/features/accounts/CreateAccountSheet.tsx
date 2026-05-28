@@ -7,7 +7,7 @@ import { accountsApi } from '@xnoll/shared'
 import { useTheme } from '../../theme/ThemeProvider'
 import { useUIStore } from '../../store/ui'
 import { useNetworkStatus } from '../../hooks/useNetworkStatus'
-import { useMutationQueue } from '../../store/mutationQueue'
+import { useMutationQueue, genKey } from '../../store/mutationQueue'
 import type { Currency } from '@xnoll/shared'
 
 const CURRENCIES: { key: Currency; label: string }[] = [
@@ -35,10 +35,11 @@ export const CreateAccountSheet = forwardRef<BottomSheet, Props>(({ onCreated, o
 
   async function handleCreate() {
     if (!name) { showToast('Введите название', '#f87171'); return }
+    const key = genKey()
     const payload = { name, bank_name: bank, currency, balance }
 
     if (network !== 'online') {
-      enqueue({ type: 'account', payload })
+      enqueue({ id: key, type: 'account', payload })
       showToast('Сохранено · отправится при появлении сети', '#f59e0b')
       reset(); onCreated()
       return
@@ -46,10 +47,10 @@ export const CreateAccountSheet = forwardRef<BottomSheet, Props>(({ onCreated, o
 
     setLoading(true)
     try {
-      await accountsApi.create(payload)
+      await accountsApi.create(payload, key)
       reset(); onCreated()
     } catch {
-      enqueue({ type: 'account', payload })
+      enqueue({ id: key, type: 'account', payload })
       showToast('Нет связи · сохранено в очередь', '#f59e0b')
       reset(); onCreated()
     } finally { setLoading(false) }

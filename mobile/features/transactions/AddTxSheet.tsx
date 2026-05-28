@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { transactionsApi, accountsApi, categoriesApi } from '@xnoll/shared'
 import { useTheme } from '../../theme/ThemeProvider'
 import { useUIStore } from '../../store/ui'
-import { useMutationQueue } from '../../store/mutationQueue'
+import { useMutationQueue, genKey } from '../../store/mutationQueue'
 import { useNetworkStatus } from '../../hooks/useNetworkStatus'
 import { DynIcon } from '../../components/DynIcon'
 import type { TransactionType, CategoryResponse } from '@xnoll/shared'
@@ -99,6 +99,7 @@ export const AddTxSheet = forwardRef<BottomSheet, Props>(({ onCreated, onClose }
   async function handleCreate() {
     if (!accountId) { showToast('Выберите счёт', '#f87171'); return }
 
+    const key = genKey()
     const payload = {
       account_id: accountId,
       category_id: categoryId!,
@@ -109,7 +110,7 @@ export const AddTxSheet = forwardRef<BottomSheet, Props>(({ onCreated, onClose }
     }
 
     if (network !== 'online') {
-      enqueue({ type: 'transaction', payload })
+      enqueue({ id: key, type: 'transaction', payload })
       showToast('Сохранено · отправится при появлении сети', '#f59e0b')
       reset()
       onCreated?.()
@@ -118,7 +119,7 @@ export const AddTxSheet = forwardRef<BottomSheet, Props>(({ onCreated, onClose }
 
     setLoading(true)
     try {
-      await transactionsApi.create(payload)
+      await transactionsApi.create(payload, key)
       qc.invalidateQueries({ queryKey: ['transactions'] })
       qc.invalidateQueries({ queryKey: ['accounts'] })
       qc.invalidateQueries({ queryKey: ['stats'] })
@@ -126,7 +127,7 @@ export const AddTxSheet = forwardRef<BottomSheet, Props>(({ onCreated, onClose }
       reset()
       onCreated?.()
     } catch {
-      enqueue({ type: 'transaction', payload })
+      enqueue({ id: key, type: 'transaction', payload })
       showToast('Нет связи · сохранено в очередь', '#f59e0b')
       reset()
       onCreated?.()
