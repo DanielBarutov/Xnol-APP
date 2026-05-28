@@ -165,7 +165,7 @@ export function AccountsScreen() {
         onSaved={() => { Keyboard.dismiss(); refresh(); depositEditRef.current?.close() }}
         onCancel={() => { Keyboard.dismiss(); depositEditRef.current?.close() }}
       />
-      <TransferSheet ref={transferRef} onCreated={() => { Keyboard.dismiss(); refresh(); transferRef.current?.close() }} onClose={() => { Keyboard.dismiss(); transferRef.current?.close() }} />
+      <TransferSheet ref={transferRef} onCreated={() => { Keyboard.dismiss(); transferRef.current?.close() }} onClose={() => { Keyboard.dismiss(); transferRef.current?.close() }} />
     </View>
   )
 }
