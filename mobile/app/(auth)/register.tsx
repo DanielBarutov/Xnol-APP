@@ -28,9 +28,10 @@ export default function RegisterScreen() {
     setError(null)
     try {
       await authApi.register({ full_name: fullName, email: email.trim(), password, primary_currency: currency })
-    } catch {
+    } catch (e: any) {
       setLoading(false)
-      setError('Ошибка регистрации. Возможно, этот email уже используется.')
+      const msg = e?.response?.data?.detail ?? e?.message ?? String(e)
+      setError(`Ошибка: ${msg}`)
       return
     }
     try {

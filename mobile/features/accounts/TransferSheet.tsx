@@ -1,13 +1,15 @@
 import { forwardRef, useState, useCallback } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, Keyboard } from 'react-native'
-import BottomSheet, { BottomSheetScrollView, BottomSheetTextInput, BottomSheetBackdrop, BottomSheetFooter } from '@gorhom/bottom-sheet'
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import BottomSheet, { BottomSheetScrollView, BottomSheetBackdrop, BottomSheetFooter } from '@gorhom/bottom-sheet'
 import type { BottomSheetBackdropProps, BottomSheetFooterProps } from '@gorhom/bottom-sheet'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { accountsApi, depositsApi } from '@xnoll/shared'
 import { useTheme } from '../../theme/ThemeProvider'
 import { useUIStore } from '../../store/ui'
-import { useMutationQueue, genId, patchBalance } from '../../store/mutationQueue'
+import { useMutationQueue, genId, patchBalance, patchDepositBalance, patchDepositAmount } from '../../store/mutationQueue'
 import type { SourceDestType } from '@xnoll/shared'
+
+const KEYPAD = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '←'] as const
 
 function todayISO() {
   const d = new Date()
@@ -33,7 +35,8 @@ export const TransferSheet = forwardRef<BottomSheet, Props>(({ onCreated, onClos
   const [toId, setToId] = useState<string | null>(null)
   const [amount, setAmount] = useState('')
 
-  const { data: accounts = [] } = useQuery({ queryKey: ['accounts'], queryFn: accountsApi.list })
+  const { data: allAccounts = [] } = useQuery({ queryKey: ['accounts'], queryFn: () => accountsApi.list({ include_deleted: true }) })
+  const accounts = allAccounts.filter(a => !a.is_deleted)
   const { data: deposits = [] } = useQuery({ queryKey: ['deposits'], queryFn: depositsApi.list })
 
   const fromList: Endpoint[] = fromKind === 'savings_account'
@@ -49,6 +52,13 @@ export const TransferSheet = forwardRef<BottomSheet, Props>(({ onCreated, onClos
     setFromId(null); setToId(null); setAmount('')
   }
 
+  function onKey(k: string) {
+    if (k === '←') { setAmount(a => a.slice(0, -1)); return }
+    if (k === '.' && amount.includes('.')) return
+    if (amount.replace('.', '').length >= 9) return
+    setAmount(a => (a === '' || a === '0') && k !== '.' ? k : a + k)
+  }
+
   const canNext = !!fromId && !!toId && fromId !== toId
   const accent = colors.expense
 
@@ -58,19 +68,25 @@ export const TransferSheet = forwardRef<BottomSheet, Props>(({ onCreated, onClos
     if (!parsed) { showToast('Введите сумму', '#f87171'); return }
 
     const id = genId()
+    const fromLabel = fromList.find(e => e.id === fromId)?.label
+    const toLabel = toList.find(e => e.id === toId)?.label
     const payload = {
       source_type: fromKind as SourceDestType,
       source_id: fromId,
+      source_label: fromLabel,
       dest_type: toKind as SourceDestType,
       dest_id: toId,
+      dest_label: toLabel,
       amount: parsed.toFixed(2),
       currency: 'RUB' as const,
       date: todayISO(),
     }
 
     enqueue({ id, type: 'transfer', payload })
-    patchBalance(qc, fromId, -parsed)
-    patchBalance(qc, toId, +parsed)
+    if (fromKind === 'savings_account') patchBalance(qc, fromId, -parsed)
+    else { patchDepositBalance(qc, fromId, -parsed); patchDepositAmount(qc, fromId, -parsed) }
+    if (toKind === 'savings_account') patchBalance(qc, toId, +parsed)
+    else { patchDepositBalance(qc, toId, +parsed); patchDepositAmount(qc, toId, +parsed) }
     showToast('Добавлено', '#34d399')
     reset()
     onCreated()
@@ -111,7 +127,7 @@ export const TransferSheet = forwardRef<BottomSheet, Props>(({ onCreated, onClos
       {(['savings_account', 'deposit'] as EndpointKind[]).map(k => {
         const active = value === k
         return (
-          <TouchableOpacity key={k} style={[styles.kindBtn, active && { backgroundColor: accent, borderRadius: 10 }]} onPress={() => { onChange(k); k === 'savings_account' ? (value === 'deposit' && setFromId(null)) : setFromId(null) }}>
+          <TouchableOpacity key={k} style={[styles.kindBtn, active && { backgroundColor: accent, borderRadius: 10 }]} onPress={() => onChange(k)}>
             <Text style={[styles.kindText, { color: active ? '#fff' : colors.textMuted }]}>{k === 'savings_account' ? 'Счёт' : 'Вклад'}</Text>
           </TouchableOpacity>
         )
@@ -153,18 +169,29 @@ export const TransferSheet = forwardRef<BottomSheet, Props>(({ onCreated, onClos
           <View style={{ height: 80 }} />
         </BottomSheetScrollView>
       ) : (
-        <BottomSheetScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>СУММА</Text>
-          <BottomSheetTextInput
-            style={[styles.amountInput, { backgroundColor: colors.surface2, color: colors.textPrimary, borderColor: colors.border }]}
-            placeholder="0.00"
-            placeholderTextColor={colors.textMuted}
-            keyboardType="decimal-pad"
-            value={amount}
-            onChangeText={setAmount}
-          />
+        <View style={styles.content}>
+          <View style={styles.amountDisplay}>
+            <Text style={[styles.amountValue, { color: amount ? accent : colors.textMuted }]}>
+              {amount || '0'}
+            </Text>
+            <Text style={[styles.amountSuffix, { color: colors.textMuted }]}>₽</Text>
+          </View>
+          <View style={styles.numpad}>
+            {KEYPAD.map(k => (
+              <TouchableOpacity
+                key={k}
+                style={[styles.key, { backgroundColor: colors.surface2, borderColor: colors.border }]}
+                onPress={() => onKey(k)}
+                activeOpacity={0.6}
+              >
+                <Text style={[styles.keyText, { color: k === '←' ? colors.textSecondary : colors.textPrimary }]}>
+                  {k}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
           <View style={{ height: 80 }} />
-        </BottomSheetScrollView>
+        </View>
       )}
     </BottomSheet>
   )
@@ -181,7 +208,12 @@ const styles = StyleSheet.create({
   kindText: { fontSize: 14, fontWeight: '600' },
   endpointRow: { paddingVertical: 13, paddingHorizontal: 16, borderRadius: 12, borderWidth: 1, marginBottom: 8, alignItems: 'center' },
   endpointText: { fontSize: 14, fontWeight: '600' },
-  amountInput: { height: 56, borderRadius: 14, paddingHorizontal: 16, fontSize: 20, fontWeight: '700', borderWidth: 1 },
+  amountDisplay: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', gap: 6, paddingVertical: 24 },
+  amountValue: { fontSize: 48, fontWeight: '800', letterSpacing: -2 },
+  amountSuffix: { fontSize: 22, fontWeight: '700' },
+  numpad: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+  key: { width: '30%', aspectRatio: 1.8, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  keyText: { fontSize: 22, fontWeight: '600' },
   footerBtn: { height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   footerBtnText: { fontSize: 16, fontWeight: '700' },
 })

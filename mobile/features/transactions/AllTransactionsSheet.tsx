@@ -1,10 +1,11 @@
-import { forwardRef, useState, useCallback, useMemo } from 'react'
+import { forwardRef, useCallback, useMemo, useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Pressable } from 'react-native'
 import BottomSheet, { BottomSheetScrollView, BottomSheetBackdrop } from '@gorhom/bottom-sheet'
 import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
 import { useQuery } from '@tanstack/react-query'
-import { transactionsApi, transfersApi, accountsApi, categoriesApi } from '@xnoll/shared'
+import { transactionsApi, transfersApi, accountsApi, categoriesApi, depositsApi } from '@xnoll/shared'
 import { formatAmount, formatCurrency, formatDate } from '@xnoll/shared'
+import type { TransactionResponse, TransferResponse, AccountResponse } from '@xnoll/shared'
 import { useTheme } from '../../theme/ThemeProvider'
 import { useUIStore } from '../../store/ui'
 import { useMutationQueue } from '../../store/mutationQueue'
@@ -77,14 +78,32 @@ export const AllTransactionsSheet = forwardRef<BottomSheet, Props>(({ onClose },
     queryFn: () => transactionsApi.list({ date_from: fromISO, date_to: toISO_, limit: 500 }),
   })
   const { data: transfers = [] } = useQuery({ queryKey: ['transfers'], queryFn: transfersApi.list })
-  const { data: accounts = [] } = useQuery({ queryKey: ['accounts'], queryFn: accountsApi.list })
+  const { data: accounts = [] } = useQuery({ queryKey: ['accounts'], queryFn: () => accountsApi.list({ include_deleted: true }) })
+  const { data: deposits = [] } = useQuery({ queryKey: ['deposits'], queryFn: depositsApi.list })
   const { data: categories = [] } = useQuery({ queryKey: ['categories'], queryFn: categoriesApi.list })
 
-  const allCats = flatten(categories)
+  const pendingCats = queueItems
+    .filter((i): i is Extract<typeof i, { type: 'category_create' }> => i.type === 'category_create')
+    .map(i => ({
+      id: i.id, user_id: '', parent_id: i.payload.parent_id ?? null,
+      name: i.payload.name, type: i.payload.type, icon: i.payload.icon ?? '',
+      color: i.payload.color ?? '', is_system: false, children: [],
+    } as CategoryResponse))
+  const pendingAccounts: AccountResponse[] = queueItems
+    .filter((i): i is Extract<typeof i, { type: 'account' }> => i.type === 'account')
+    .map(i => ({
+      id: i.id, user_id: '', name: i.payload.name, bank_name: i.payload.bank_name,
+      balance: i.payload.balance, currency: i.payload.currency, created_at: i.queuedAt,
+    }))
+
+  const allCats = flatten([...categories, ...pendingCats])
   const catMap = Object.fromEntries(allCats.map(c => [c.id, c]))
-  const accountNameById = Object.fromEntries(
-    accounts.map(a => [a.id, a.bank_name ? `${a.bank_name} · ${a.name}` : a.name]),
-  )
+  // Include all accounts (active + deleted) and deposits for name resolution in history
+  const entityNameById = Object.fromEntries([
+    ...accounts.map(a => [a.id, a.bank_name ? `${a.bank_name} · ${a.name}` : a.name] as [string, string]),
+    ...pendingAccounts.map(a => [a.id, a.bank_name ? `${a.bank_name} · ${a.name}` : a.name] as [string, string]),
+    ...deposits.map(d => [d.id, `${d.bank_name} · ${d.name}`] as [string, string]),
+  ])
 
   const entries = useMemo(() => {
     const filteredTransfers = transfers.filter(tr => {
@@ -94,8 +113,8 @@ export const AllTransactionsSheet = forwardRef<BottomSheet, Props>(({ onClose },
       return true
     })
     const pending = queueItems
-      .filter((item): item is Exclude<typeof item, { type: 'account' }> => {
-        if (item.type === 'account') return false
+      .filter((item): item is Extract<typeof item, { type: 'transaction' | 'transfer' }> => {
+        if (item.type !== 'transaction' && item.type !== 'transfer') return false
         const d = item.payload.date
         if (fromISO && d < fromISO) return false
         if (toISO_ && d > toISO_) return false
@@ -176,49 +195,66 @@ export const AllTransactionsSheet = forwardRef<BottomSheet, Props>(({ onClose },
           const isLast = i === entries.length - 1
           if (entry.kind === 'pending') {
             const { item } = entry
+            const time = item.queuedAt.slice(11, 16)
             if (item.type === 'transaction') {
               const cat = catMap[item.payload.category_id]
               const catColor = cat?.color ?? '#6366f1'
               const isIncome = item.payload.type === 'income'
               const direction = isIncome
-                ? `${cat?.name ?? 'Без категории'} → ${accountNameById[item.payload.account_id] ?? ''}`
-                : `${accountNameById[item.payload.account_id] ?? ''} → ${cat?.name ?? 'Без категории'}`
+                ? `${cat?.name ?? 'Без категории'} → ${entityNameById[item.payload.account_id] ?? ''}`
+                : `${entityNameById[item.payload.account_id] ?? ''} → ${cat?.name ?? 'Без категории'}`
+              const syntheticTx: TransactionResponse = {
+                id: item.id, user_id: '',
+                account_id: item.payload.account_id, category_id: item.payload.category_id,
+                type: item.payload.type as 'income' | 'expense', amount: item.payload.amount,
+                date: item.payload.date, description: item.payload.description ?? null,
+                created_at: item.queuedAt,
+              }
               return (
-                <View key={`pending-${item.id}`} style={[styles.row, { opacity: 0.6, borderBottomColor: colors.border, borderBottomWidth: isLast ? 0 : 1 }]}>
+                <Pressable
+                  key={`pending-${item.id}`}
+                  style={[styles.row, { borderBottomColor: colors.border, borderBottomWidth: isLast ? 0 : 1 }]}
+                  onPress={() => openModal('transaction-detail', syntheticTx)}
+                >
                   <View style={[styles.icon, { backgroundColor: catColor + '22' }]}>
                     <DynIcon name={cat?.icon ?? 'Package'} size={18} color={catColor} />
                   </View>
                   <View style={styles.info}>
                     <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>{direction}</Text>
-                    <Text style={[styles.sub, { color: colors.textSecondary }]}>Синхронизируется...</Text>
+                    <Text style={[styles.sub, { color: colors.textSecondary }]}>Сегодня, {time}</Text>
                   </View>
-                  <View style={{ alignItems: 'flex-end', gap: 2 }}>
-                    <Text style={[styles.amount, { color: isIncome ? colors.income : colors.expense }]}>
-                      {balanceVisible ? `${isIncome ? '+' : '−'}${formatAmount(Math.abs(parseFloat(item.payload.amount)))} ₽` : '••••••'}
-                    </Text>
-                    <DynIcon name="Clock" size={10} color={colors.textMuted} />
-                  </View>
-                </View>
+                  <Text style={[styles.amount, { color: isIncome ? colors.income : colors.expense }]}>
+                    {balanceVisible ? `${isIncome ? '+' : '−'}${formatAmount(Math.abs(parseFloat(item.payload.amount)))} ₽` : '••••••'}
+                  </Text>
+                </Pressable>
               )
             }
-            const srcName = item.payload.source_id ? (accountNameById[item.payload.source_id] ?? 'Счёт') : 'Счёт'
-            const dstName = item.payload.dest_id ? (accountNameById[item.payload.dest_id] ?? 'Счёт') : 'Счёт'
+            const srcName = entityNameById[item.payload.source_id ?? ''] ?? item.payload.source_label ?? 'Счёт'
+            const dstName = entityNameById[item.payload.dest_id ?? ''] ?? item.payload.dest_label ?? 'Счёт'
+            const syntheticTransfer: TransferResponse = {
+              id: item.id, user_id: '',
+              source_type: item.payload.source_type, source_id: item.payload.source_id ?? null, source_label: item.payload.source_label ?? null,
+              dest_type: item.payload.dest_type, dest_id: item.payload.dest_id ?? null, dest_label: item.payload.dest_label ?? null,
+              amount: item.payload.amount, currency: item.payload.currency,
+              date: item.payload.date, description: null, created_at: item.queuedAt,
+            }
             return (
-              <View key={`pending-${item.id}`} style={[styles.row, { opacity: 0.6, borderBottomColor: colors.border, borderBottomWidth: isLast ? 0 : 1 }]}>
+              <Pressable
+                key={`pending-${item.id}`}
+                style={[styles.row, { borderBottomColor: colors.border, borderBottomWidth: isLast ? 0 : 1 }]}
+                onPress={() => openModal('transfer-detail', syntheticTransfer)}
+              >
                 <View style={[styles.icon, { backgroundColor: colors.accentTint }]}>
                   <DynIcon name="ArrowRightLeft" size={18} color={colors.accent} />
                 </View>
                 <View style={styles.info}>
                   <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>{srcName} → {dstName}</Text>
-                  <Text style={[styles.sub, { color: colors.textSecondary }]}>Синхронизируется...</Text>
+                  <Text style={[styles.sub, { color: colors.textSecondary }]}>Сегодня, {time}</Text>
                 </View>
-                <View style={{ alignItems: 'flex-end', gap: 2 }}>
-                  <Text style={[styles.amount, { color: colors.textSecondary }]}>
-                    {balanceVisible ? formatCurrency(parseFloat(item.payload.amount), item.payload.currency) : '••••••'}
-                  </Text>
-                  <DynIcon name="Clock" size={10} color={colors.textMuted} />
-                </View>
-              </View>
+                <Text style={[styles.amount, { color: colors.textSecondary }]}>
+                  {balanceVisible ? formatCurrency(parseFloat(item.payload.amount), item.payload.currency) : '••••••'}
+                </Text>
+              </Pressable>
             )
           }
           if (entry.kind === 'tx') {
@@ -227,7 +263,7 @@ export const AllTransactionsSheet = forwardRef<BottomSheet, Props>(({ onClose },
             const catColor = cat?.color ?? '#6366f1'
             const iconName = cat?.icon ?? 'Package'
             const catName = cat?.name ?? 'Без категории'
-            const accName = accountNameById[tx.account_id] ?? ''
+            const accName = entityNameById[tx.account_id] ?? ''
             const isIncome = tx.type === 'income'
             const direction = isIncome ? `${catName} → ${accName}` : `${accName} → ${catName}`
             return (
@@ -253,15 +289,16 @@ export const AllTransactionsSheet = forwardRef<BottomSheet, Props>(({ onClose },
           }
           const tr = entry.data
           const srcName = tr.source_id
-            ? (accountNameById[tr.source_id] ?? tr.source_label ?? 'Счёт')
+            ? (entityNameById[tr.source_id] ?? tr.source_label ?? 'Счёт')
             : (tr.source_label ?? 'Внешний')
           const dstName = tr.dest_id
-            ? (accountNameById[tr.dest_id] ?? tr.dest_label ?? 'Счёт')
+            ? (entityNameById[tr.dest_id] ?? tr.dest_label ?? 'Счёт')
             : (tr.dest_label ?? 'Внешний')
           return (
-            <View
+            <Pressable
               key={`tr-${tr.id}`}
               style={[styles.row, { borderBottomColor: colors.border, borderBottomWidth: isLast ? 0 : 1 }]}
+              onPress={() => openModal('transfer-detail', tr)}
             >
               <View style={[styles.icon, { backgroundColor: colors.accentTint }]}>
                 <DynIcon name="ArrowRightLeft" size={18} color={colors.accent} />
@@ -273,7 +310,7 @@ export const AllTransactionsSheet = forwardRef<BottomSheet, Props>(({ onClose },
               <Text style={[styles.amount, { color: colors.textSecondary }]}>
                 {balanceVisible ? formatCurrency(parseFloat(tr.amount), tr.currency) : '••••••'}
               </Text>
-            </View>
+            </Pressable>
           )
         })}
       </BottomSheetScrollView>

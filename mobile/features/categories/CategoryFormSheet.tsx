@@ -1,10 +1,11 @@
 import { forwardRef, useState, useEffect, useCallback } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
 import BottomSheet, { BottomSheetScrollView, BottomSheetTextInput, BottomSheetBackdrop } from '@gorhom/bottom-sheet'
 import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
-import { categoriesApi } from '@xnoll/shared'
+import { useQueryClient } from '@tanstack/react-query'
 import { useTheme } from '../../theme/ThemeProvider'
 import { useUIStore } from '../../store/ui'
+import { useMutationQueue, genId } from '../../store/mutationQueue'
 import { DynIcon } from '../../components/DynIcon'
 import type { CategoryResponse } from '@xnoll/shared'
 
@@ -30,13 +31,14 @@ export const CategoryFormSheet = forwardRef<BottomSheet, Props>(
   ({ editing, defaultType, categories, onSaved, onClose }, ref) => {
     const colors = useTheme()
     const showToast = useUIStore(s => s.showToast)
+    const qc = useQueryClient()
+    const enqueue = useMutationQueue(s => s.add)
     const accent = colors.accent
 
     const [name, setName] = useState('')
     const [color, setColor] = useState(COLORS[0])
     const [icon, setIcon] = useState(ICONS[0])
     const [parentId, setParentId] = useState<string | null>(null)
-    const [loading, setLoading] = useState(false)
 
     const isEdit = editing !== null
     const title = isEdit ? 'Изменить категорию' : 'Новая категория'
@@ -60,27 +62,25 @@ export const CategoryFormSheet = forwardRef<BottomSheet, Props>(
       }
     }, [editing])
 
-    async function handleSave() {
+    function handleSave() {
       if (!name.trim()) { showToast('Введите название', accent); return }
-      setLoading(true)
-      try {
-        if (isEdit) {
-          await categoriesApi.update(editing.id, { name: name.trim(), color, icon })
-        } else {
-          await categoriesApi.create({
-            name: name.trim(),
-            type: defaultType,
-            color,
-            icon,
-            ...(parentId ? { parent_id: parentId } : {}),
-          })
-        }
-        onSaved()
-      } catch {
-        showToast('Ошибка сохранения', colors.expense)
-      } finally {
-        setLoading(false)
+      const id = genId()
+      if (isEdit) {
+        const payload = { id: editing.id, name: name.trim(), color, icon }
+        enqueue({ id, type: 'category_update', payload })
+        qc.setQueryData<CategoryResponse[]>(['categories'], (cats = []) =>
+          cats.map(c => c.id === editing.id ? { ...c, name: name.trim(), color, icon } : c)
+        )
+      } else {
+        const payload = { name: name.trim(), type: defaultType, color, icon, ...(parentId ? { parent_id: parentId } : {}) }
+        enqueue({ id, type: 'category_create', payload })
+        qc.setQueryData<CategoryResponse[]>(['categories'], (cats = []) => [
+          ...cats,
+          { id, user_id: '', parent_id: parentId, name: name.trim(), type: defaultType, icon, color, is_system: false, children: [] },
+        ])
       }
+      showToast('Сохранено', '#34d399')
+      onSaved()
     }
 
     const renderBackdrop = useCallback(
@@ -197,15 +197,8 @@ export const CategoryFormSheet = forwardRef<BottomSheet, Props>(
           </View>
 
           {/* Save */}
-          <TouchableOpacity
-            style={[styles.saveBtn, { backgroundColor: accent }]}
-            onPress={handleSave}
-            disabled={loading}
-          >
-            {loading
-              ? <ActivityIndicator color="#fff" />
-              : <Text style={styles.saveTxt}>Сохранить</Text>
-            }
+          <TouchableOpacity style={[styles.saveBtn, { backgroundColor: accent }]} onPress={handleSave}>
+            <Text style={styles.saveTxt}>Сохранить</Text>
           </TouchableOpacity>
         </BottomSheetScrollView>
       </BottomSheet>

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native'
+import { Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, Keyboard } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { authApi } from '@xnoll/shared'
@@ -23,10 +23,12 @@ export default function LoginScreen() {
     setError(null)
     try {
       const { access_token, refresh_token } = await authApi.login({ email: email.trim(), password })
+      Keyboard.dismiss()
       setTokens(access_token, refresh_token)
       router.replace('/(tabs)/')
-    } catch {
-      setError('Неверный email или пароль')
+    } catch (e: any) {
+      const msg = e?.response?.data?.detail ?? e?.message ?? String(e)
+      setError(`Ошибка: ${msg}`)
     } finally {
       setLoading(false)
     }
@@ -34,8 +36,8 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.root, { backgroundColor: colors.bg, paddingTop: insets.top + 32 }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={[styles.root, { backgroundColor: colors.bg, paddingTop: insets.top }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <Text style={[styles.title, { color: colors.textPrimary }]}>Вход в Xnoll</Text>
 
@@ -78,7 +80,7 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, paddingHorizontal: 24, gap: 14 },
+  root: { flex: 1, paddingHorizontal: 24, gap: 14, justifyContent: 'center' },
   title: { fontSize: 28, fontWeight: '700', marginBottom: 8 },
   input: { height: 50, borderRadius: 12, borderWidth: 1, paddingHorizontal: 16, fontSize: 16 },
   btn: { height: 50, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },

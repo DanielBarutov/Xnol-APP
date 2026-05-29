@@ -1,11 +1,13 @@
 import { forwardRef, useCallback, useState } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { ConfirmModal } from '../../components/ConfirmModal'
 import BottomSheet, { BottomSheetScrollView, BottomSheetBackdrop } from '@gorhom/bottom-sheet'
 import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { categoriesApi } from '@xnoll/shared'
 import { useTheme } from '../../theme/ThemeProvider'
 import { useUIStore } from '../../store/ui'
+import { useMutationQueue, genId } from '../../store/mutationQueue'
 import { DynIcon } from '../../components/DynIcon'
 import type { CategoryResponse } from '@xnoll/shared'
 
@@ -22,30 +24,27 @@ export const CategoriesSheet = forwardRef<BottomSheet, Props>(
     const colors = useTheme()
     const qc = useQueryClient()
     const showToast = useUIStore(s => s.showToast)
+    const enqueue = useMutationQueue(s => s.add)
     const accent = colors.accent
 
     const [tab, setTab] = useState<Tab>('expense')
+    const [pendingDelete, setPendingDelete] = useState<CategoryResponse | null>(null)
 
     const { data: categories = [] } = useQuery({ queryKey: ['categories'], queryFn: categoriesApi.list })
     const list = categories.filter(c => c.type === tab && c.parent_id === null)
 
-    function refresh() { qc.invalidateQueries({ queryKey: ['categories'] }) }
+    function handleDelete(cat: CategoryResponse) {
+      setPendingDelete(cat)
+    }
 
-    async function handleDelete(cat: CategoryResponse) {
-      Alert.alert('Удалить категорию', `"${cat.name}"?`, [
-        { text: 'Отмена', style: 'cancel' },
-        {
-          text: 'Удалить', style: 'destructive', onPress: async () => {
-            try {
-              await categoriesApi.delete(cat.id)
-              refresh()
-              showToast('Категория удалена', colors.income)
-            } catch {
-              showToast('Нельзя удалить', colors.expense)
-            }
-          },
-        },
-      ])
+    function confirmDelete() {
+      if (!pendingDelete) return
+      enqueue({ id: genId(), type: 'category_delete', payload: { id: pendingDelete.id } })
+      qc.setQueryData<CategoryResponse[]>(['categories'], (cats = []) =>
+        cats.filter(c => c.id !== pendingDelete.id)
+      )
+      showToast('Категория удалена', colors.income)
+      setPendingDelete(null)
     }
 
     const renderBackdrop = useCallback(
@@ -123,6 +122,15 @@ export const CategoriesSheet = forwardRef<BottomSheet, Props>(
             </TouchableOpacity>
           </View>
         </View>
+        <ConfirmModal
+          visible={!!pendingDelete}
+          title="Удалить категорию"
+          message={pendingDelete ? `"${pendingDelete.name}"?` : undefined}
+          confirmLabel="Удалить"
+          destructive
+          onConfirm={confirmDelete}
+          onCancel={() => setPendingDelete(null)}
+        />
       </BottomSheet>
     )
   },

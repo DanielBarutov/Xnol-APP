@@ -26,3 +26,4 @@ class AccountResponse(BaseModel):
     balance: Decimal
     currency: str
     created_at: datetime
+    is_deleted: bool = False

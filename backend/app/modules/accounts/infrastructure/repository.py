@@ -29,12 +29,12 @@ class SQLAlchemyAccountRepository(IAccountRepository):
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def list_for_user(self, user_id: UUID) -> list[Account]:
-        result = await self._session.execute(
-            select(AccountModel)
-            .where(AccountModel.user_id == user_id, AccountModel.deleted_at.is_(None))
-            .order_by(AccountModel.created_at.asc())
-        )
+    async def list_for_user(self, user_id: UUID, include_deleted: bool = False) -> list[Account]:
+        q = select(AccountModel).where(AccountModel.user_id == user_id)
+        if not include_deleted:
+            q = q.where(AccountModel.deleted_at.is_(None))
+        q = q.order_by(AccountModel.created_at.asc())
+        result = await self._session.execute(q)
         return [_to_entity(m) for m in result.scalars().all()]
 
     async def find_by_id(self, account_id: UUID) -> Account | None:

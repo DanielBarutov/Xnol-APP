@@ -15,7 +15,7 @@ export interface CreateCategoryRequest { name: string; type: string; icon: strin
 export interface UpdateCategoryRequest { name?: string; icon?: string; color?: string }
 
 // Accounts
-export interface AccountResponse { id: string; user_id: string; name: string; bank_name: string; balance: string; currency: Currency; created_at: string }
+export interface AccountResponse { id: string; user_id: string; name: string; bank_name: string; balance: string; currency: Currency; created_at: string; is_deleted?: boolean }
 export interface CreateAccountRequest { id?: string; name: string; bank_name: string; currency: Currency; balance: string }
 
 // Deposits

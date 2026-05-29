@@ -97,3 +97,13 @@ class SQLAlchemyDepositRepository(IDepositRepository):
         await self._session.flush()
         if result.rowcount == 0:
             raise NotFoundError("Deposit", str(deposit_id))
+
+    async def update_amount(self, deposit_id: UUID, delta: Decimal) -> None:
+        result = await self._session.execute(
+            sa_update(DepositModel)
+            .where(DepositModel.id == deposit_id)
+            .values(amount=DepositModel.amount + delta)
+        )
+        await self._session.flush()
+        if result.rowcount == 0:
+            raise NotFoundError("Deposit", str(deposit_id))

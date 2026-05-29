@@ -35,7 +35,8 @@ export function AccountsScreen() {
   const [selectedAcc, setSelectedAcc] = useState<AccountResponse | null>(null)
   const [selectedDep, setSelectedDep] = useState<DepositResponse | null>(null)
 
-  const { data: accounts = [] } = useQuery({ queryKey: ['accounts'], queryFn: accountsApi.list })
+  const { data: allAccounts = [] } = useQuery({ queryKey: ['accounts'], queryFn: () => accountsApi.list({ include_deleted: true }) })
+  const accounts = allAccounts.filter(a => !a.is_deleted)
   const { data: deposits = [] } = useQuery({ queryKey: ['deposits'], queryFn: depositsApi.list })
 
   function refresh() {
@@ -150,15 +151,21 @@ export function AccountsScreen() {
         deposit={selectedDep}
         onClose={() => { Keyboard.dismiss(); depositDetailRef.current?.close(); setSelectedDep(null) }}
         onDeleted={() => { Keyboard.dismiss(); refresh(); depositDetailRef.current?.close(); setSelectedDep(null) }}
-        onEdit={() => { depositDetailRef.current?.close(); depositEditRef.current?.expand() }}
+        onEdit={() => { depositEditRef.current?.expand() }}
       />
       <DepositEditSheet
         ref={depositEditRef}
         deposit={selectedDep}
-        onSaved={() => { Keyboard.dismiss(); refresh(); depositEditRef.current?.close() }}
+        onSaved={() => {
+          Keyboard.dismiss()
+          refresh()
+          depositEditRef.current?.close()
+          depositDetailRef.current?.close()
+          setSelectedDep(null)
+        }}
         onCancel={() => { Keyboard.dismiss(); depositEditRef.current?.close() }}
       />
-      <TransferSheet ref={transferRef} onCreated={() => { Keyboard.dismiss(); refresh(); transferRef.current?.close() }} onClose={() => { Keyboard.dismiss(); transferRef.current?.close() }} />
+      <TransferSheet ref={transferRef} onCreated={() => { Keyboard.dismiss(); transferRef.current?.close() }} onClose={() => { Keyboard.dismiss(); transferRef.current?.close() }} />
     </View>
   )
 }

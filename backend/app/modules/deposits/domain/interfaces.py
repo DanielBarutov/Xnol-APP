@@ -35,3 +35,8 @@ class IDepositRepository(ABC):
     async def update_balance(self, deposit_id: UUID, delta: Decimal) -> None:
         """Atomically adds delta to balance (delta can be negative)."""
         ...
+
+    @abstractmethod
+    async def update_amount(self, deposit_id: UUID, delta: Decimal) -> None:
+        """Atomically adds delta to amount (principal). Used when transfers top up / draw from a deposit."""
+        ...

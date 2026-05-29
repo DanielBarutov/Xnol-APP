@@ -1,12 +1,13 @@
 import { forwardRef, useState, useEffect, useCallback } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Keyboard } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native'
 
 import BottomSheet, { BottomSheetScrollView, BottomSheetTextInput, BottomSheetBackdrop } from '@gorhom/bottom-sheet'
 import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
 import { LinearGradient } from 'expo-linear-gradient'
-import { accountsApi } from '@xnoll/shared'
+import { useQueryClient } from '@tanstack/react-query'
 import { useTheme } from '../../theme/ThemeProvider'
 import { useUIStore } from '../../store/ui'
+import { useMutationQueue, genId } from '../../store/mutationQueue'
 import type { AccountResponse } from '@xnoll/shared'
 
 interface Props { account: AccountResponse | null; onUpdated: () => void; onClose?: () => void }
@@ -14,12 +15,13 @@ interface Props { account: AccountResponse | null; onUpdated: () => void; onClos
 export const AccountEditSheet = forwardRef<BottomSheet, Props>(({ account, onUpdated, onClose }, ref) => {
   const colors = useTheme()
   const showToast = useUIStore(s => s.showToast)
+  const qc = useQueryClient()
+  const enqueue = useMutationQueue(s => s.add)
   const accent = colors.expense
 
   const [bank, setBank] = useState('')
   const [name, setName] = useState('')
   const [balance, setBalance] = useState('')
-  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (!account) return
@@ -28,14 +30,15 @@ export const AccountEditSheet = forwardRef<BottomSheet, Props>(({ account, onUpd
     setBalance(account.balance)
   }, [account])
 
-  async function handleUpdate() {
+  function handleUpdate() {
     if (!account) return
-    setLoading(true)
-    try {
-      await accountsApi.update(account.id, { name, bank_name: bank, balance })
-      onUpdated()
-    } catch { showToast('Ошибка сохранения', accent) }
-    finally { setLoading(false) }
+    const payload = { id: account.id, name, bank_name: bank, balance }
+    enqueue({ id: genId(), type: 'account_update', payload })
+    qc.setQueryData<AccountResponse[]>(['accounts'], (accs = []) =>
+      accs.map(a => a.id === account.id ? { ...a, name, bank_name: bank, balance } : a),
+    )
+    showToast('Сохранено', '#34d399')
+    onUpdated()
   }
 
   function handleDelete() {
@@ -43,11 +46,13 @@ export const AccountEditSheet = forwardRef<BottomSheet, Props>(({ account, onUpd
     Alert.alert('Удалить счёт', `Удалить "${account.name}"?`, [
       { text: 'Отмена', style: 'cancel' },
       {
-        text: 'Удалить', style: 'destructive', onPress: async () => {
-          try {
-            await accountsApi.delete(account.id)
-            onUpdated()
-          } catch { showToast('Ошибка удаления', accent) }
+        text: 'Удалить', style: 'destructive', onPress: () => {
+          enqueue({ id: genId(), type: 'account_delete', payload: { id: account.id } })
+          qc.setQueryData<AccountResponse[]>(['accounts'], (accs = []) =>
+            accs.filter(a => a.id !== account.id),
+          )
+          showToast('Счёт удалён', '#6366f1')
+          onUpdated()
         },
       },
     ])
@@ -78,9 +83,9 @@ export const AccountEditSheet = forwardRef<BottomSheet, Props>(({ account, onUpd
         <Text style={[styles.label, { color: colors.textMuted }]}>НАЧАЛЬНЫЙ ОСТАТОК</Text>
         <BottomSheetTextInput style={[styles.input, { backgroundColor: colors.surface2, color: colors.textPrimary, borderColor: colors.border }]} placeholder="0" placeholderTextColor={colors.textMuted} keyboardType="decimal-pad" value={balance} onChangeText={setBalance} />
 
-        <TouchableOpacity style={styles.saveBtn} onPress={handleUpdate} disabled={loading}>
+        <TouchableOpacity style={styles.saveBtn} onPress={handleUpdate}>
           <LinearGradient colors={[colors.accent2, colors.accent]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.saveGradient}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveTxt}>Сохранить</Text>}
+            <Text style={styles.saveTxt}>Сохранить</Text>
           </LinearGradient>
         </TouchableOpacity>
 

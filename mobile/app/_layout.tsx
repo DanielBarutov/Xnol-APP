@@ -1,7 +1,11 @@
 import { useEffect } from 'react'
+import { LogBox } from 'react-native'
 import { Stack, useRouter, useSegments } from 'expo-router'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
+
+// Sync failures are expected during offline/transient periods — suppress LogBox overlay
+LogBox.ignoreLogs(['[Sync]'])
 import { QueryClient, onlineManager } from '@tanstack/react-query'
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister'

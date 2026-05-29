@@ -1,12 +1,13 @@
 import { forwardRef, useState, useCallback } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, Switch, ActivityIndicator, Keyboard } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, Switch, Keyboard } from 'react-native'
 
 import BottomSheet, { BottomSheetScrollView, BottomSheetTextInput, BottomSheetBackdrop } from '@gorhom/bottom-sheet'
 import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
-import { depositsApi } from '@xnoll/shared'
+import { useQueryClient } from '@tanstack/react-query'
 import { useTheme } from '../../theme/ThemeProvider'
 import { useUIStore } from '../../store/ui'
-import type { Currency } from '@xnoll/shared'
+import { useMutationQueue, genId } from '../../store/mutationQueue'
+import type { Currency, DepositResponse } from '@xnoll/shared'
 
 const CURRENCIES: { key: Currency; label: string }[] = [
   { key: 'RUB', label: '₽ RUB' },
@@ -41,6 +42,8 @@ interface Props { onCreated: () => void; onClose?: () => void }
 export const CreateDepositSheet = forwardRef<BottomSheet, Props>(({ onCreated, onClose }, ref) => {
   const colors = useTheme()
   const showToast = useUIStore(s => s.showToast)
+  const qc = useQueryClient()
+  const enqueue = useMutationQueue(s => s.add)
 
   const [bank, setBank] = useState('')
   const [name, setName] = useState('')
@@ -51,7 +54,6 @@ export const CreateDepositSheet = forwardRef<BottomSheet, Props>(({ onCreated, o
   const [openDate, setOpenDate] = useState(isoToDisplay(todayISO()))
   const [closeDate, setCloseDate] = useState('')
   const [autoRenew, setAutoRenew] = useState(false)
-  const [loading, setLoading] = useState(false)
 
   const accent = colors.expense
 
@@ -60,25 +62,44 @@ export const CreateDepositSheet = forwardRef<BottomSheet, Props>(({ onCreated, o
     setInterestType('simple'); setOpenDate(isoToDisplay(todayISO())); setCloseDate(''); setAutoRenew(false)
   }
 
-  async function handleCreate() {
+  function handleCreate() {
     if (!bank || !name || !amount || !rate || !openDate || !closeDate) {
       showToast('Заполните все поля', '#f87171'); return
     }
     const openISO = displayToISO(openDate)
     const closeISO = displayToISO(closeDate)
     if (!openISO || !closeISO) { showToast('Неверный формат даты', '#f87171'); return }
-    setLoading(true)
-    try {
-      await depositsApi.create({
-        bank_name: bank, name, currency,
-        amount: parseFloat(amount.replace(',', '.')).toFixed(2),
-        interest_rate: parseFloat(rate.replace(',', '.')).toFixed(4),
+
+    const normalizedAmount = parseFloat(amount.replace(',', '.')).toFixed(2)
+    const normalizedRate = parseFloat(rate.replace(',', '.')).toFixed(4)
+    const id = genId()
+
+    const payload = {
+      bank_name: bank, name, currency,
+      amount: normalizedAmount,
+      interest_rate: normalizedRate,
+      interest_type: interestType,
+      open_date: openISO, close_date: closeISO, auto_renew: autoRenew,
+    }
+
+    enqueue({ id, type: 'deposit', payload })
+    qc.setQueryData<DepositResponse[]>(['deposits'], (deps = []) => [
+      ...deps,
+      {
+        id, user_id: '', name, bank_name: bank,
+        amount: normalizedAmount, interest_rate: normalizedRate,
         interest_type: interestType,
-        open_date: openISO, close_date: closeISO, auto_renew: autoRenew,
-      })
-      reset(); onCreated()
-    } catch { showToast('Ошибка создания вклада', '#f87171') }
-    finally { setLoading(false) }
+        open_date: openISO, close_date: closeISO,
+        currency, auto_renew: autoRenew,
+        early_closure_rate: null,
+        balance: normalizedAmount,
+        status: 'active',
+        created_at: new Date().toISOString(),
+      },
+    ])
+    showToast('Добавлено', '#34d399')
+    reset()
+    onCreated()
   }
 
   const renderBackdrop = useCallback(
@@ -158,8 +179,8 @@ export const CreateDepositSheet = forwardRef<BottomSheet, Props>(({ onCreated, o
           <Switch value={autoRenew} onValueChange={setAutoRenew} trackColor={{ true: accent }} thumbColor="#fff" />
         </View>
 
-        <TouchableOpacity style={[styles.btn, { backgroundColor: loading || !bank || !name ? colors.surface2 : accent }]} onPress={handleCreate} disabled={loading}>
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={[styles.btnText, { color: loading || !bank || !name ? colors.textMuted : '#fff' }]}>Создать вклад</Text>}
+        <TouchableOpacity style={[styles.btn, { backgroundColor: bank && name ? accent : colors.surface2 }]} onPress={handleCreate}>
+          <Text style={[styles.btnText, { color: bank && name ? '#fff' : colors.textMuted }]}>Создать вклад</Text>
         </TouchableOpacity>
       </BottomSheetScrollView>
     </BottomSheet>

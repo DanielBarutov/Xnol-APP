@@ -11,10 +11,10 @@ class FakeAccountRepository(IAccountRepository):
     def __init__(self) -> None:
         self._store: dict[UUID, Account] = {}
 
-    async def list_for_user(self, user_id: UUID) -> list[Account]:
+    async def list_for_user(self, user_id: UUID, include_deleted: bool = False) -> list[Account]:
         return [
             a for a in self._store.values()
-            if a.user_id == user_id and a.deleted_at is None
+            if a.user_id == user_id and (include_deleted or a.deleted_at is None)
         ]
 
     async def find_by_id(self, account_id: UUID) -> Account | None:

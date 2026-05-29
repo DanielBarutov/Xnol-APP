@@ -8,8 +8,8 @@ from app.modules.accounts.domain.entities import Account
 
 class IAccountRepository(ABC):
     @abstractmethod
-    async def list_for_user(self, user_id: UUID) -> list[Account]:
-        """Returns active accounts (deleted_at IS NULL) for the user."""
+    async def list_for_user(self, user_id: UUID, include_deleted: bool = False) -> list[Account]:
+        """Returns accounts for the user. When include_deleted=True also returns soft-deleted accounts."""
         ...
 
     @abstractmethod

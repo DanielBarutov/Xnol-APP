@@ -6,16 +6,24 @@
     "orientation": "portrait",
     "scheme": "xnoll",
     "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#12151f"
+    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.xnoll.app"
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#12151f"
       },
       "package": "com.xnoll.app",
-      "softwareKeyboardLayoutMode": "pan"
+      "softwareKeyboardLayoutMode": "pan",
+      "usesCleartextTraffic": true
     },
     "plugins": [
       "expo-router",
@@ -23,6 +31,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0a36a3da-fad3-4197-afb5-9a5c154b0353"
+      }
+    },
+    "owner": "danielbarutov"
   }
 }
