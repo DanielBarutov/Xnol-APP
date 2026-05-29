@@ -14,16 +14,18 @@ const NSC_XML = `<?xml version="1.0" encoding="utf-8"?>
 
 const withCleartextTraffic = (config) => {
   config = withDangerousMods(config, [
-    'android',
-    async (config) => {
-      const xmlDir = path.join(
-        config.modRequest.platformProjectRoot,
-        'app/src/main/res/xml'
-      )
-      fs.mkdirSync(xmlDir, { recursive: true })
-      fs.writeFileSync(path.join(xmlDir, 'network_security_config.xml'), NSC_XML)
-      return config
-    },
+    [
+      'android',
+      async (config) => {
+        const xmlDir = path.join(
+          config.modRequest.platformProjectRoot,
+          'app/src/main/res/xml'
+        )
+        fs.mkdirSync(xmlDir, { recursive: true })
+        fs.writeFileSync(path.join(xmlDir, 'network_security_config.xml'), NSC_XML)
+        return config
+      },
+    ],
   ])
 
   config = withAndroidManifest(config, (config) => {
