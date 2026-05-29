@@ -41,6 +41,10 @@ export default function LoginScreen() {
     >
       <Text style={[styles.title, { color: colors.textPrimary }]}>Вход в Xnoll</Text>
 
+      <Text style={{ color: colors.textMuted, fontSize: 10, textAlign: 'center' }}>
+        API: {process.env.EXPO_PUBLIC_API_URL ?? 'не задан (fallback localhost)'}
+      </Text>
+
       {error && <Text style={styles.error}>{error}</Text>}
 
       <TextInput
