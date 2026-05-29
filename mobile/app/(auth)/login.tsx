@@ -26,8 +26,9 @@ export default function LoginScreen() {
       Keyboard.dismiss()
       setTokens(access_token, refresh_token)
       router.replace('/(tabs)/')
-    } catch {
-      setError('Неверный email или пароль')
+    } catch (e: any) {
+      const msg = e?.response?.data?.detail ?? e?.message ?? String(e)
+      setError(`Ошибка: ${msg}`)
     } finally {
       setLoading(false)
     }
