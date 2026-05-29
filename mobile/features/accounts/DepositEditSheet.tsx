@@ -1,12 +1,13 @@
 import { forwardRef, useState, useEffect, useCallback } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, Switch, ActivityIndicator, Keyboard } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, Switch } from 'react-native'
 
 import BottomSheet, { BottomSheetScrollView, BottomSheetTextInput, BottomSheetBackdrop } from '@gorhom/bottom-sheet'
 import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
 import { LinearGradient } from 'expo-linear-gradient'
-import { depositsApi } from '@xnoll/shared'
+import { useQueryClient } from '@tanstack/react-query'
 import { useTheme } from '../../theme/ThemeProvider'
 import { useUIStore } from '../../store/ui'
+import { useMutationQueue, genId } from '../../store/mutationQueue'
 import type { DepositResponse } from '@xnoll/shared'
 
 function isoToDisplay(iso: string): string {
@@ -31,6 +32,8 @@ interface Props { deposit: DepositResponse | null; onSaved: () => void; onCancel
 export const DepositEditSheet = forwardRef<BottomSheet, Props>(({ deposit, onSaved, onCancel }, ref) => {
   const colors = useTheme()
   const showToast = useUIStore(s => s.showToast)
+  const qc = useQueryClient()
+  const enqueue = useMutationQueue(s => s.add)
   const accent = colors.expense
 
   const [name, setName] = useState('')
@@ -38,7 +41,6 @@ export const DepositEditSheet = forwardRef<BottomSheet, Props>(({ deposit, onSav
   const [rate, setRate] = useState('')
   const [closeDate, setCloseDate] = useState('')
   const [autoRenew, setAutoRenew] = useState(false)
-  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (!deposit) return
@@ -49,21 +51,22 @@ export const DepositEditSheet = forwardRef<BottomSheet, Props>(({ deposit, onSav
     setAutoRenew(deposit.auto_renew)
   }, [deposit])
 
-  async function handleSave() {
+  function handleSave() {
     if (!deposit) return
     const closeISO = displayToISO(closeDate)
     if (closeDate && !closeISO) { showToast('Неверный формат даты', '#f87171'); return }
-    setLoading(true)
-    try {
-      await depositsApi.update(deposit.id, {
-        name, bank_name: bank,
-        interest_rate: parseFloat(rate).toFixed(4),
-        close_date: closeISO || deposit.close_date,
-        auto_renew: autoRenew,
-      })
-      onSaved()
-    } catch { showToast('Ошибка сохранения', accent) }
-    finally { setLoading(false) }
+    const updatedRate = parseFloat(rate).toFixed(4)
+    const updatedClose = closeISO || deposit.close_date
+    const payload = { id: deposit.id, name, bank_name: bank, interest_rate: updatedRate, close_date: updatedClose, auto_renew: autoRenew }
+    enqueue({ id: genId(), type: 'deposit_update', payload })
+    qc.setQueryData<DepositResponse[]>(['deposits'], (deps = []) =>
+      deps.map(d => d.id === deposit.id
+        ? { ...d, name, bank_name: bank, interest_rate: updatedRate, close_date: updatedClose, auto_renew: autoRenew }
+        : d,
+      ),
+    )
+    showToast('Сохранено', '#34d399')
+    onSaved()
   }
 
   const renderBackdrop = useCallback(
@@ -103,9 +106,9 @@ export const DepositEditSheet = forwardRef<BottomSheet, Props>(({ deposit, onSav
           <TouchableOpacity style={[styles.cancelBtn, { backgroundColor: colors.surface2, borderColor: colors.border }]} onPress={onCancel}>
             <Text style={[styles.cancelTxt, { color: colors.textSecondary }]}>Отмена</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={loading}>
+          <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
             <LinearGradient colors={[colors.accent2, accent]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.saveGradient}>
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveTxt}>Сохранить</Text>}
+              <Text style={styles.saveTxt}>Сохранить</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>

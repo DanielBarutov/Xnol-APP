@@ -58,8 +58,10 @@ async def _adjust_balances(
         await account_repo.update_balance(dest_id, amount)
     if source_type == "deposit" and source_id is not None:
         await deposit_repo.update_balance(source_id, -amount)
+        await deposit_repo.update_amount(source_id, -amount)
     if dest_type == "deposit" and dest_id is not None:
         await deposit_repo.update_balance(dest_id, amount)
+        await deposit_repo.update_amount(dest_id, amount)
 
 
 class ListTransfersUseCase:

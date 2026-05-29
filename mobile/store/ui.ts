@@ -6,6 +6,7 @@ import type { ThemeName, ThemeMode } from '../theme/tokens'
 export type ModalType =
   | 'add-tx'
   | 'transfer'
+  | 'transfer-detail'
   | 'deposit-detail'
   | 'account-detail'
   | 'account-edit'

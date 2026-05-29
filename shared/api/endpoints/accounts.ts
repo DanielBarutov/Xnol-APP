@@ -6,7 +6,8 @@ function idempotencyHeaders(key?: string): Record<string, string> {
 }
 
 export const accountsApi = {
-  list: () => api.get<AccountResponse[]>('/api/v1/accounts').then(r => r.data),
+  list: (params?: { include_deleted?: boolean }) =>
+    api.get<AccountResponse[]>('/api/v1/accounts', { params }).then(r => r.data),
   create: (data: CreateAccountRequest, idempotencyKey?: string) =>
     api.post<AccountResponse>('/api/v1/accounts', data, {
       headers: idempotencyHeaders(idempotencyKey),

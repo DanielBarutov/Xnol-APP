@@ -4,6 +4,7 @@ import BottomSheet, { BottomSheetView, BottomSheetScrollView, BottomSheetTextInp
 import type { BottomSheetBackdropProps, BottomSheetFooterProps } from '@gorhom/bottom-sheet'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { accountsApi, categoriesApi } from '@xnoll/shared'
+import type { CategoryStatsResponse } from '@xnoll/shared'
 import { useTheme } from '../../theme/ThemeProvider'
 import { useUIStore } from '../../store/ui'
 import { useMutationQueue, genId, patchBalance } from '../../store/mutationQueue'
@@ -45,7 +46,8 @@ export const AddTxSheet = forwardRef<BottomSheet, Props>(({ onCreated, onClose }
   const [accountId, setAccountId] = useState<string | null>(null)
   const [comment, setComment] = useState('')
 
-  const { data: accounts = [] } = useQuery({ queryKey: ['accounts'], queryFn: accountsApi.list })
+  const { data: allAccounts = [] } = useQuery({ queryKey: ['accounts'], queryFn: () => accountsApi.list({ include_deleted: true }) })
+  const accounts = allAccounts.filter(a => !a.is_deleted)
   const { data: categories = [] } = useQuery({ queryKey: ['categories'], queryFn: categoriesApi.list })
 
   useEffect(() => {
@@ -110,6 +112,22 @@ export const AddTxSheet = forwardRef<BottomSheet, Props>(({ onCreated, onClose }
 
     enqueue({ id, type: 'transaction', payload })
     patchBalance(qc, accountId, type === 'income' ? parsed : -parsed)
+    qc.setQueryData<CategoryStatsResponse>(['stats', 'categories', 'this_month'], (old) => {
+      if (!old) return old
+      if (type === 'income') {
+        return {
+          ...old,
+          total_income: (parseFloat(old.total_income) + parsed).toFixed(2),
+          net: (parseFloat(old.net) + parsed).toFixed(2),
+        }
+      } else {
+        return {
+          ...old,
+          total_expense: (parseFloat(old.total_expense) - parsed).toFixed(2),
+          net: (parseFloat(old.net) - parsed).toFixed(2),
+        }
+      }
+    })
     showToast('Добавлено', '#34d399')
     reset()
     onCreated?.()

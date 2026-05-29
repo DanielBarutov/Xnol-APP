@@ -1,15 +1,17 @@
-import { forwardRef, useCallback } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native'
+import { forwardRef, useCallback, useState } from 'react'
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { ConfirmModal } from '../../components/ConfirmModal'
 import BottomSheet, { BottomSheetScrollView, BottomSheetBackdrop } from '@gorhom/bottom-sheet'
 import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
 import { useQueryClient } from '@tanstack/react-query'
-import { depositsApi, formatAmount } from '@xnoll/shared'
+import { formatAmount } from '@xnoll/shared'
 import { useTheme } from '../../theme/ThemeProvider'
 import { useUIStore } from '../../store/ui'
+import { useMutationQueue, genId } from '../../store/mutationQueue'
 import type { DepositResponse } from '@xnoll/shared'
 
 function calcExpectedIncome(d: DepositResponse): number {
-  const principal = parseFloat(d.amount)
+  const principal = parseFloat(d.balance)
   const rate = parseFloat(d.interest_rate) / 100
   const open = new Date(d.open_date)
   const close = new Date(d.close_date)
@@ -24,23 +26,24 @@ export const DepositDetailSheet = forwardRef<BottomSheet, Props>(({ deposit, onC
   const colors = useTheme()
   const showToast = useUIStore(s => s.showToast)
   const qc = useQueryClient()
+  const enqueue = useMutationQueue(s => s.add)
   const accent = colors.expense
+  const [confirmVisible, setConfirmVisible] = useState(false)
 
-  async function handleDelete() {
+  function handleDelete() {
     if (!deposit) return
-    Alert.alert('Удалить вклад', `Удалить "${deposit.name}"?`, [
-      { text: 'Отмена', style: 'cancel' },
-      {
-        text: 'Удалить', style: 'destructive', onPress: async () => {
-          try {
-            await depositsApi.delete(deposit.id)
-            qc.invalidateQueries({ queryKey: ['deposits'] })
-            showToast('Вклад удалён', '#6366f1')
-            onDeleted()
-          } catch { showToast('Ошибка удаления', accent) }
-        },
-      },
-    ])
+    setConfirmVisible(true)
+  }
+
+  function confirmDelete() {
+    if (!deposit) return
+    setConfirmVisible(false)
+    enqueue({ id: genId(), type: 'deposit_delete', payload: { id: deposit.id } })
+    qc.setQueryData<DepositResponse[]>(['deposits'], (deps = []) =>
+      deps.filter(d => d.id !== deposit.id),
+    )
+    showToast('Вклад удалён', '#6366f1')
+    onDeleted()
   }
 
   const renderBackdrop = useCallback(
@@ -48,16 +51,8 @@ export const DepositDetailSheet = forwardRef<BottomSheet, Props>(({ deposit, onC
     [],
   )
 
-  if (!deposit) return (
-    <BottomSheet ref={ref} index={-1} snapPoints={['75%']} backdropComponent={renderBackdrop}
-      backgroundStyle={{ backgroundColor: colors.surface }} handleIndicatorStyle={{ backgroundColor: colors.border }}
-    >
-      <View />
-    </BottomSheet>
-  )
-
-  const income = calcExpectedIncome(deposit)
-  const total = parseFloat(deposit.amount) + income
+  const income = deposit ? calcExpectedIncome(deposit) : 0
+  const total = deposit ? parseFloat(deposit.balance) + income : 0
 
   return (
     <BottomSheet
@@ -68,35 +63,49 @@ export const DepositDetailSheet = forwardRef<BottomSheet, Props>(({ deposit, onC
       onClose={onClose}
     >
       <BottomSheetScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>Детали вклада</Text>
-          <TouchableOpacity onPress={onEdit}>
-            <Text style={[styles.editLink, { color: accent }]}>Изменить</Text>
-          </TouchableOpacity>
-        </View>
+        {deposit ? (
+          <>
+            <View style={styles.header}>
+              <Text style={[styles.title, { color: colors.textPrimary }]}>Детали вклада</Text>
+              <TouchableOpacity onPress={onEdit}>
+                <Text style={[styles.editLink, { color: accent }]}>Изменить</Text>
+              </TouchableOpacity>
+            </View>
 
-        <View style={[styles.card, { backgroundColor: colors.surface2, borderColor: colors.border }]}>
-          <Row label="Банк" value={deposit.bank_name} colors={colors} />
-          <Row label="Сумма" value={`${formatAmount(parseFloat(deposit.amount))} ₽`} colors={colors} />
-          <Row label="Баланс" value={`${formatAmount(parseFloat(deposit.balance))} ₽`} colors={colors} />
-          <Row label="Ставка" value={`${parseFloat(deposit.interest_rate).toFixed(4)}% (${deposit.interest_type === 'simple' ? 'простые' : 'сложные'})`} colors={colors} />
-          <Row label="Открыт" value={deposit.open_date} colors={colors} />
-          <Row label="Закрыт" value={deposit.close_date} colors={colors} />
-          <Row label="Автопролонгация" value={deposit.auto_renew ? 'Да' : 'Нет'} colors={colors} />
-          <Row label="Статус" value={deposit.status} colors={colors} last />
-        </View>
+            <View style={[styles.card, { backgroundColor: colors.surface2, borderColor: colors.border }]}>
+              <Row label="Банк" value={deposit.bank_name} colors={colors} />
+              <Row label="Сумма" value={`${formatAmount(parseFloat(deposit.amount))} ₽`} colors={colors} />
+              <Row label="Баланс" value={`${formatAmount(parseFloat(deposit.balance))} ₽`} colors={colors} />
+              <Row label="Ставка" value={`${parseFloat(deposit.interest_rate).toFixed(4)}% (${deposit.interest_type === 'simple' ? 'простые' : 'сложные'})`} colors={colors} />
+              <Row label="Открыт" value={deposit.open_date} colors={colors} />
+              <Row label="Закрыт" value={deposit.close_date} colors={colors} />
+              <Row label="Автопролонгация" value={deposit.auto_renew ? 'Да' : 'Нет'} colors={colors} />
+              <Row label="Статус" value={deposit.status} colors={colors} last />
+            </View>
 
-        <Text style={[styles.incomeLabel, { color: colors.textMuted }]}>ОЖИДАЕМЫЙ ДОХОД</Text>
-        <View style={[styles.card, { backgroundColor: colors.surface2, borderColor: colors.border }]}>
-          <Row label="Доход" value={`+${formatAmount(income)} ₽`} valueColor={colors.income} colors={colors} />
-          <Row label="Итог" value={`${formatAmount(total)} ₽`} colors={colors} last />
-        </View>
+            <Text style={[styles.incomeLabel, { color: colors.textMuted }]}>ОЖИДАЕМЫЙ ДОХОД</Text>
+            <View style={[styles.card, { backgroundColor: colors.surface2, borderColor: colors.border }]}>
+              <Row label="Доход" value={`+${formatAmount(income)} ₽`} valueColor={colors.income} colors={colors} />
+              <Row label="Итог" value={`${formatAmount(total)} ₽`} colors={colors} last />
+            </View>
 
-        <TouchableOpacity style={[styles.deleteBtn, { borderColor: accent + '66', backgroundColor: accent + '11' }]} onPress={handleDelete}>
-          <Text style={[styles.deleteTxt, { color: accent }]}>Удалить вклад</Text>
-        </TouchableOpacity>
+            <TouchableOpacity style={[styles.deleteBtn, { borderColor: accent + '66', backgroundColor: accent + '11' }]} onPress={handleDelete}>
+              <Text style={[styles.deleteTxt, { color: accent }]}>Удалить вклад</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <View />
+        )}
       </BottomSheetScrollView>
+      <ConfirmModal
+        visible={confirmVisible}
+        title="Удалить вклад"
+        message={deposit ? `Удалить "${deposit.name}"?` : undefined}
+        confirmLabel="Удалить"
+        destructive
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmVisible(false)}
+      />
     </BottomSheet>
   )
 })

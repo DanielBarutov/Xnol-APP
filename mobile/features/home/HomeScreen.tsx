@@ -10,7 +10,7 @@ import { useTheme } from '../../theme/ThemeProvider'
 import { formatAmount, formatCurrency, formatDate } from '@xnoll/shared'
 import { DynIcon } from '../../components/DynIcon'
 import { useMutationQueue } from '../../store/mutationQueue'
-import type { TransactionResponse, TransferResponse, CategoryResponse } from '@xnoll/shared'
+import type { TransactionResponse, TransferResponse, CategoryResponse, AccountResponse } from '@xnoll/shared'
 
 const TAG_COLORS = [
   '#6366f1','#8b5cf6','#a855f7','#ec4899','#f43f5e',
@@ -50,34 +50,54 @@ function flatten(cats: CategoryResponse[]): CategoryResponse[] {
 type UnifiedEntry =
   | { kind: 'tx';               date: string; data: TransactionResponse }
   | { kind: 'transfer';         date: string; data: TransferResponse }
-  | { kind: 'pending-tx';       date: string; categoryId: string; accountId: string; txType: 'income' | 'expense'; amount: string }
-  | { kind: 'pending-transfer'; date: string; sourceId: string; destId: string; amount: string; currency: string }
+  | { kind: 'pending-tx';       date: string; queueId: string; categoryId: string; accountId: string; txType: 'income' | 'expense'; amount: string }
+  | { kind: 'pending-transfer'; date: string; queueId: string; sourceId: string; destId: string; sourceLabel?: string; destLabel?: string; sourceType: string; destType: string; amount: string; currency: string }
 
 export function HomeScreen() {
   const colors = useTheme()
   const insets = useSafeAreaInsets()
-  const { accounts, transactions, transfers, categories, monthStats, totalBalance } = useHomeData()
+  const { accounts, deposits, transactions, transfers, categories, monthStats, totalBalance } = useHomeData()
   const balanceVisible = useUIStore((s) => s.balanceVisible)
   const toggleBalance = useUIStore((s) => s.toggleBalance)
   const openModal = useUIStore((s) => s.openModal)
   const user = useAuthStore((s) => s.user)
   const [activeCard, setActiveCard] = useState(0)
 
-  const accountList = accounts.data ?? []
+  const accountList = (accounts.data ?? []).filter(a => !a.is_deleted)
+  const depositList = deposits.data ?? []
   const txList = transactions.data ?? []
   const transferList = transfers.data ?? []
   const categoryList = categories.data ?? []
   const queueItems = useMutationQueue(s => s.items)
 
-  const allCats = flatten(categoryList)
+  const pendingCats: CategoryResponse[] = queueItems
+    .filter((i): i is Extract<typeof i, { type: 'category_create' }> => i.type === 'category_create')
+    .map(i => ({
+      id: i.id, user_id: '', parent_id: i.payload.parent_id ?? null,
+      name: i.payload.name, type: i.payload.type, icon: i.payload.icon ?? '',
+      color: i.payload.color ?? '', is_system: false, children: [],
+    }))
+  const pendingAccounts: AccountResponse[] = queueItems
+    .filter((i): i is Extract<typeof i, { type: 'account' }> => i.type === 'account')
+    .map(i => ({
+      id: i.id, user_id: '', name: i.payload.name, bank_name: i.payload.bank_name,
+      balance: i.payload.balance, currency: i.payload.currency, created_at: i.queuedAt,
+    }))
+
+  const allCats = flatten([...categoryList, ...pendingCats])
   const catMap = Object.fromEntries(allCats.map(c => [c.id, c]))
-  const accountNameById = Object.fromEntries(accountList.map(a => [a.id, a.bank_name ? `${a.bank_name} · ${a.name}` : a.name]))
+  // Include all accounts (active + deleted) and deposits for name resolution in history
+  const entityNameById = Object.fromEntries([
+    ...(accounts.data ?? []).map(a => [a.id, a.bank_name ? `${a.bank_name} · ${a.name}` : a.name] as [string, string]),
+    ...pendingAccounts.map(a => [a.id, a.bank_name ? `${a.bank_name} · ${a.name}` : a.name] as [string, string]),
+    ...depositList.map(d => [d.id, `${d.bank_name} · ${d.name}`] as [string, string]),
+  ])
 
   const pendingEntries: UnifiedEntry[] = queueItems
-    .filter((i): i is Exclude<typeof i, { type: 'account' }> => i.type === 'transaction' || i.type === 'transfer')
+    .filter((i): i is Extract<typeof i, { type: 'transaction' | 'transfer' }> => i.type === 'transaction' || i.type === 'transfer')
     .map(i => i.type === 'transaction'
-      ? { kind: 'pending-tx' as const, date: i.queuedAt, categoryId: i.payload.category_id, accountId: i.payload.account_id, txType: i.payload.type as 'income' | 'expense', amount: i.payload.amount }
-      : { kind: 'pending-transfer' as const, date: i.queuedAt, sourceId: i.payload.source_id ?? '', destId: i.payload.dest_id ?? '', amount: i.payload.amount, currency: i.payload.currency }
+      ? { kind: 'pending-tx' as const, date: i.queuedAt, queueId: i.id, categoryId: i.payload.category_id, accountId: i.payload.account_id, txType: i.payload.type as 'income' | 'expense', amount: i.payload.amount }
+      : { kind: 'pending-transfer' as const, date: i.queuedAt, queueId: i.id, sourceId: i.payload.source_id ?? '', destId: i.payload.dest_id ?? '', sourceLabel: i.payload.source_label, destLabel: i.payload.dest_label, sourceType: i.payload.source_type, destType: i.payload.dest_type, amount: i.payload.amount, currency: i.payload.currency }
     )
 
   const entries: UnifiedEntry[] = [
@@ -259,45 +279,63 @@ export function HomeScreen() {
             const catColor = cat?.color ?? '#6366f1'
             const isIncome = entry.txType === 'income'
             const catName = cat?.name ?? 'Без категории'
-            const accName = accountNameById[entry.accountId] ?? ''
+            const accName = entityNameById[entry.accountId] ?? ''
             const direction = isIncome ? `${catName} → ${accName}` : `${accName} → ${catName}`
+            const time = entry.date.slice(11, 16)
+            const syntheticTx: TransactionResponse = {
+              id: entry.queueId, user_id: '',
+              account_id: entry.accountId, category_id: entry.categoryId,
+              type: entry.txType, amount: entry.amount,
+              date: entry.date.slice(0, 10), description: null,
+              created_at: entry.date,
+            }
             return (
-              <View key={`pending-tx-${entry.date}`} style={[styles.txRow, { opacity: 0.6, borderBottomColor: colors.border, borderBottomWidth: isLast ? 0 : 1 }]}>
+              <TouchableOpacity
+                key={`pending-tx-${entry.queueId}`}
+                style={[styles.txRow, { borderBottomColor: colors.border, borderBottomWidth: isLast ? 0 : 1 }]}
+                onPress={() => openModal('transaction-detail', syntheticTx)}
+              >
                 <View style={[styles.txIcon, { backgroundColor: catColor + '22' }]}>
                   <DynIcon name={cat?.icon ?? 'Package'} size={18} color={catColor} />
                 </View>
                 <View style={styles.txInfo}>
                   <Text style={[styles.txName, { color: colors.textPrimary }]} numberOfLines={1}>{direction}</Text>
-                  <Text style={[styles.txSub, { color: colors.textSecondary }]}>Синхронизируется...</Text>
+                  <Text style={[styles.txSub, { color: colors.textSecondary }]}>Сегодня, {time}</Text>
                 </View>
-                <View style={{ alignItems: 'flex-end', gap: 2 }}>
-                  <Text style={[styles.txAmount, { color: isIncome ? colors.income : colors.expense }]}>
-                    {balanceVisible ? `${isIncome ? '+' : '−'}${formatAmount(Math.abs(parseFloat(entry.amount)))} ₽` : '••••••'}
-                  </Text>
-                  <DynIcon name="Clock" size={10} color={colors.textMuted} />
-                </View>
-              </View>
+                <Text style={[styles.txAmount, { color: isIncome ? colors.income : colors.expense }]}>
+                  {balanceVisible ? `${isIncome ? '+' : '−'}${formatAmount(Math.abs(parseFloat(entry.amount)))} ₽` : '••••••'}
+                </Text>
+              </TouchableOpacity>
             )
           }
           if (entry.kind === 'pending-transfer') {
-            const srcName = accountNameById[entry.sourceId] ?? 'Счёт'
-            const dstName = accountNameById[entry.destId] ?? 'Счёт'
+            const srcName = entityNameById[entry.sourceId] ?? entry.sourceLabel ?? 'Счёт'
+            const dstName = entityNameById[entry.destId] ?? entry.destLabel ?? 'Счёт'
+            const time = entry.date.slice(11, 16)
+            const syntheticTransfer: TransferResponse = {
+              id: entry.queueId, user_id: '',
+              source_type: entry.sourceType as any, source_id: entry.sourceId || null, source_label: entry.sourceLabel ?? null,
+              dest_type: entry.destType as any, dest_id: entry.destId || null, dest_label: entry.destLabel ?? null,
+              amount: entry.amount, currency: entry.currency as any,
+              date: entry.date.slice(0, 10), description: null, created_at: entry.date,
+            }
             return (
-              <View key={`pending-tr-${entry.date}`} style={[styles.txRow, { opacity: 0.6, borderBottomColor: colors.border, borderBottomWidth: isLast ? 0 : 1 }]}>
+              <TouchableOpacity
+                key={`pending-tr-${entry.queueId}`}
+                style={[styles.txRow, { borderBottomColor: colors.border, borderBottomWidth: isLast ? 0 : 1 }]}
+                onPress={() => openModal('transfer-detail', syntheticTransfer)}
+              >
                 <View style={[styles.txIcon, { backgroundColor: colors.accentTint }]}>
                   <DynIcon name="ArrowRightLeft" size={18} color={colors.accent} />
                 </View>
                 <View style={styles.txInfo}>
                   <Text style={[styles.txName, { color: colors.textPrimary }]} numberOfLines={1}>{srcName} → {dstName}</Text>
-                  <Text style={[styles.txSub, { color: colors.textSecondary }]}>Синхронизируется...</Text>
+                  <Text style={[styles.txSub, { color: colors.textSecondary }]}>Сегодня, {time}</Text>
                 </View>
-                <View style={{ alignItems: 'flex-end', gap: 2 }}>
-                  <Text style={[styles.txAmount, { color: colors.textSecondary }]}>
-                    {balanceVisible ? `${formatCurrency(parseFloat(entry.amount), entry.currency as any)}` : '••••••'}
-                  </Text>
-                  <DynIcon name="Clock" size={10} color={colors.textMuted} />
-                </View>
-              </View>
+                <Text style={[styles.txAmount, { color: colors.textSecondary }]}>
+                  {balanceVisible ? `${formatCurrency(parseFloat(entry.amount), entry.currency as any)}` : '••••••'}
+                </Text>
+              </TouchableOpacity>
             )
           }
           if (entry.kind === 'tx') {
@@ -306,7 +344,7 @@ export function HomeScreen() {
             const catColor = cat?.color ?? '#6366f1'
             const iconName = cat?.icon ?? 'Package'
             const catName = cat?.name ?? 'Без категории'
-            const accName = accountNameById[tx.account_id] ?? ''
+            const accName = entityNameById[tx.account_id] ?? ''
             const isIncome = tx.type === 'income'
             const direction = isIncome ? `${catName} → ${accName}` : `${accName} → ${catName}`
             return (
@@ -331,12 +369,13 @@ export function HomeScreen() {
             )
           }
           const tr = entry.data
-          const srcName = tr.source_id ? (accountNameById[tr.source_id] ?? tr.source_label ?? 'Счёт') : (tr.source_label ?? 'Внешний')
-          const dstName = tr.dest_id   ? (accountNameById[tr.dest_id]   ?? tr.dest_label   ?? 'Счёт') : (tr.dest_label   ?? 'Внешний')
+          const srcName = tr.source_id ? (entityNameById[tr.source_id] ?? tr.source_label ?? 'Счёт') : (tr.source_label ?? 'Внешний')
+          const dstName = tr.dest_id   ? (entityNameById[tr.dest_id]   ?? tr.dest_label   ?? 'Счёт') : (tr.dest_label   ?? 'Внешний')
           return (
-            <View
+            <TouchableOpacity
               key={`tr-${tr.id}`}
               style={[styles.txRow, { borderBottomColor: colors.border, borderBottomWidth: isLast ? 0 : 1 }]}
+              onPress={() => openModal('transfer-detail', tr)}
             >
               <View style={[styles.txIcon, { backgroundColor: colors.accentTint }]}>
                 <DynIcon name="ArrowRightLeft" size={18} color={colors.accent} />
@@ -348,7 +387,7 @@ export function HomeScreen() {
               <Text style={[styles.txAmount, { color: colors.textSecondary }]}>
                 {balanceVisible ? `${formatCurrency(parseFloat(tr.amount), tr.currency)}` : '••••••'}
               </Text>
-            </View>
+            </TouchableOpacity>
           )
         })}
       </View>

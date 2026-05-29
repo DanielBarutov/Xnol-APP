@@ -1,6 +1,6 @@
 import json
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
 
 from app.dependencies import get_account_repository, get_current_user_id, get_idempotency_repository
@@ -34,15 +34,17 @@ def _map_dto(dto) -> AccountResponse:
         balance=dto.balance,
         currency=dto.currency,
         created_at=dto.created_at,
+        is_deleted=dto.deleted_at is not None,
     )
 
 
 @router.get("", response_model=list[AccountResponse])
 async def list_accounts(
+    include_deleted: bool = Query(False),
     user_id: UUID = Depends(get_current_user_id),
     repo: IAccountRepository = Depends(get_account_repository),
 ) -> list[AccountResponse]:
-    dtos = await ListAccountsUseCase(repo).execute(user_id)
+    dtos = await ListAccountsUseCase(repo).execute(user_id, include_deleted=include_deleted)
     return [_map_dto(d) for d in dtos]
 
 

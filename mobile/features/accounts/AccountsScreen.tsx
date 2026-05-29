@@ -12,7 +12,6 @@ import { AccountEditSheet } from './AccountEditSheet'
 import { DepositDetailSheet } from './DepositDetailSheet'
 import { DepositEditSheet } from './DepositEditSheet'
 import { TransferSheet } from './TransferSheet'
-import { useMutationQueue } from '../../store/mutationQueue'
 import type { AccountResponse, DepositResponse } from '@xnoll/shared'
 
 const TAG_COLORS = [
@@ -36,9 +35,9 @@ export function AccountsScreen() {
   const [selectedAcc, setSelectedAcc] = useState<AccountResponse | null>(null)
   const [selectedDep, setSelectedDep] = useState<DepositResponse | null>(null)
 
-  const { data: accounts = [] } = useQuery({ queryKey: ['accounts'], queryFn: accountsApi.list })
+  const { data: allAccounts = [] } = useQuery({ queryKey: ['accounts'], queryFn: () => accountsApi.list({ include_deleted: true }) })
+  const accounts = allAccounts.filter(a => !a.is_deleted)
   const { data: deposits = [] } = useQuery({ queryKey: ['deposits'], queryFn: depositsApi.list })
-  const queueItems = useMutationQueue(s => s.items)
 
   function refresh() {
     qc.invalidateQueries({ queryKey: ['accounts'] })
@@ -95,12 +94,7 @@ export function AccountsScreen() {
                     <DynIcon name="CreditCard" size={18} color={dotColor} />
                   </View>
                   <View style={styles.rowInfo}>
-                    <View style={styles.rowNameWrap}>
-                      <Text style={[styles.rowName, { color: colors.textPrimary }]}>{acc.bank_name ?? acc.name}</Text>
-                      {queueItems.some(i => i.type === 'account' && i.id === acc.id) && (
-                        <DynIcon name="Clock" size={14} color={colors.textMuted} />
-                      )}
-                    </View>
+                    <Text style={[styles.rowName, { color: colors.textPrimary }]}>{acc.bank_name ?? acc.name}</Text>
                     <Text style={[styles.rowSub, { color: colors.textMuted }]}>{acc.name}</Text>
                   </View>
                   <Text style={[styles.rowBalance, { color: balance < 0 ? colors.expense : colors.textPrimary }]}>
@@ -157,12 +151,18 @@ export function AccountsScreen() {
         deposit={selectedDep}
         onClose={() => { Keyboard.dismiss(); depositDetailRef.current?.close(); setSelectedDep(null) }}
         onDeleted={() => { Keyboard.dismiss(); refresh(); depositDetailRef.current?.close(); setSelectedDep(null) }}
-        onEdit={() => { depositDetailRef.current?.close(); depositEditRef.current?.expand() }}
+        onEdit={() => { depositEditRef.current?.expand() }}
       />
       <DepositEditSheet
         ref={depositEditRef}
         deposit={selectedDep}
-        onSaved={() => { Keyboard.dismiss(); refresh(); depositEditRef.current?.close() }}
+        onSaved={() => {
+          Keyboard.dismiss()
+          refresh()
+          depositEditRef.current?.close()
+          depositDetailRef.current?.close()
+          setSelectedDep(null)
+        }}
         onCancel={() => { Keyboard.dismiss(); depositEditRef.current?.close() }}
       />
       <TransferSheet ref={transferRef} onCreated={() => { Keyboard.dismiss(); transferRef.current?.close() }} onClose={() => { Keyboard.dismiss(); transferRef.current?.close() }} />
@@ -181,7 +181,6 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, borderWidth: 1, marginBottom: 8 },
   iconWrap: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   rowInfo: { flex: 1, minWidth: 0 },
-  rowNameWrap: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   rowName: { fontSize: 15, fontWeight: '700' },
   rowSub: { fontSize: 12, marginTop: 2 },
   rowBalance: { fontSize: 15, fontWeight: '700', flexShrink: 0 },

@@ -13,6 +13,7 @@ class AccountDTO:
     balance: Decimal
     currency: str
     created_at: datetime
+    deleted_at: datetime | None = None
 
 
 @dataclass

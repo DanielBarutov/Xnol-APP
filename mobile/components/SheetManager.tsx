@@ -6,17 +6,23 @@ import { useQuery } from '@tanstack/react-query'
 import { categoriesApi } from '@xnoll/shared'
 import { AddTxSheet } from '../features/transactions/AddTxSheet'
 import { TransactionDetail } from '../features/transactions/TransactionDetailSheet'
+import { TransferDetail } from '../features/transactions/TransferDetailSheet'
 import { AllTransactionsSheet } from '../features/transactions/AllTransactionsSheet'
 import { CategoriesSheet } from '../features/categories/CategoriesSheet'
 import { CategoryFormSheet } from '../features/categories/CategoryFormSheet'
 import { Sheet } from './Sheet'
-import type { TransactionResponse, CategoryResponse } from '@xnoll/shared'
+import type { TransactionResponse, TransferResponse, CategoryResponse } from '@xnoll/shared'
 
 function isTransaction(p: unknown): p is TransactionResponse {
-  return typeof p === 'object' && p !== null && 'type' in p && 'amount' in p
+  return typeof p === 'object' && p !== null && 'type' in p && 'amount' in p && ('category_id' in p)
+}
+
+function isTransfer(p: unknown): p is TransferResponse {
+  return typeof p === 'object' && p !== null && 'source_type' in p && 'dest_type' in p
 }
 
 const DETAIL_SNAP_POINTS = ['45%'] as const
+const TRANSFER_DETAIL_SNAP_POINTS = ['42%'] as const
 
 export function SheetManager() {
   const modal = useUIStore((s) => s.modal)
@@ -24,6 +30,7 @@ export function SheetManager() {
 
   const addTxRef = useRef<BottomSheet>(null)
   const detailRef = useRef<BottomSheet>(null)
+  const transferDetailRef = useRef<BottomSheet>(null)
   const allTxRef = useRef<BottomSheet>(null)
   const categoriesRef = useRef<BottomSheet>(null)
   const categoryFormRef = useRef<BottomSheet>(null)
@@ -50,6 +57,11 @@ export function SheetManager() {
   useEffect(() => {
     if (modal.type === 'transaction-detail') detailRef.current?.expand()
     else detailRef.current?.close()
+  }, [modal.type])
+
+  useEffect(() => {
+    if (modal.type === 'transfer-detail') transferDetailRef.current?.expand()
+    else transferDetailRef.current?.close()
   }, [modal.type])
 
   useEffect(() => {
@@ -108,6 +120,11 @@ export function SheetManager() {
       <Sheet ref={detailRef} snapPoints={DETAIL_SNAP_POINTS} onClose={dismiss}>
         {isTransaction(modal.payload) && (
           <TransactionDetail transaction={modal.payload} onClose={dismiss} />
+        )}
+      </Sheet>
+      <Sheet ref={transferDetailRef} snapPoints={TRANSFER_DETAIL_SNAP_POINTS} onClose={dismiss}>
+        {isTransfer(modal.payload) && (
+          <TransferDetail transfer={modal.payload} onClose={dismiss} />
         )}
       </Sheet>
     </>

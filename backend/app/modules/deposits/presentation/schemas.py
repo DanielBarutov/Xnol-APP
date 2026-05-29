@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class CreateDepositRequest(BaseModel):
@@ -34,8 +34,8 @@ class UpdateDepositRequest(BaseModel):
 
 
 class CloseDepositRequest(BaseModel):
-    close_type: Literal["closed", "early_closed"]
-    actual_close_date: date
+    close_type: Literal["closed", "early_closed"] = "closed"
+    actual_close_date: date = Field(default_factory=date.today)
 
 
 class DepositResponse(BaseModel):

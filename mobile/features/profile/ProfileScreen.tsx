@@ -9,6 +9,7 @@ import { useTheme } from '../../theme/ThemeProvider'
 import { DynIcon } from '../../components/DynIcon'
 import { useNetworkStatus } from '../../hooks/useNetworkStatus'
 import { useMutationQueue } from '../../store/mutationQueue'
+import { syncTrigger } from '../../hooks/useMutationSync'
 import type { ThemeName, ThemeMode } from '../../theme/tokens'
 
 const THEMES: { name: ThemeName; label: string; colors: [string, string, string] }[] = [
@@ -51,6 +52,7 @@ export function ProfileScreen() {
   function handleRefresh() {
     if (networkStatus !== 'online') return
     qc.invalidateQueries()
+    syncTrigger.run()
   }
 
   async function changeTheme(name: ThemeName) {
@@ -167,7 +169,7 @@ export function ProfileScreen() {
                 : 'Нет сети · Данные из кэша'
               : isSyncing ? 'Синхронизация...'
               : pendingCount > 0
-                ? `Отправляется ${pendingCount}...`
+                ? `В очереди: ${pendingCount}`
                 : 'Синхронизировано'}
           </Text>
           {networkStatus === 'online' && !isSyncing && pendingCount === 0 && (

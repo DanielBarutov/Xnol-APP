@@ -110,15 +110,16 @@ async def update_deposit(
 @router.delete("/{deposit_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def close_deposit(
     deposit_id: UUID,
-    body: CloseDepositRequest,
     user_id: UUID = Depends(get_current_user_id),
     repo: IDepositRepository = Depends(get_deposit_repository),
+    body: CloseDepositRequest | None = None,
 ) -> None:
+    req = body or CloseDepositRequest()
     try:
         await CloseDepositUseCase(repo).execute(
             CloseDepositDTO(
                 deposit_id=deposit_id, user_id=user_id,
-                close_type=body.close_type, actual_close_date=body.actual_close_date,
+                close_type=req.close_type, actual_close_date=req.actual_close_date,
             )
         )
     except NotFoundError as exc:

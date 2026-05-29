@@ -16,6 +16,7 @@ def _to_dto(a: Account) -> AccountDTO:
         balance=a.balance,
         currency=a.currency,
         created_at=a.created_at,
+        deleted_at=a.deleted_at,
     )
 
 
@@ -23,8 +24,8 @@ class ListAccountsUseCase:
     def __init__(self, repo: IAccountRepository) -> None:
         self._repo = repo
 
-    async def execute(self, user_id: UUID) -> list[AccountDTO]:
-        accounts = await self._repo.list_for_user(user_id)
+    async def execute(self, user_id: UUID, include_deleted: bool = False) -> list[AccountDTO]:
+        accounts = await self._repo.list_for_user(user_id, include_deleted=include_deleted)
         return [_to_dto(a) for a in accounts]
 
 
