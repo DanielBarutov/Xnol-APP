@@ -22,13 +22,19 @@
         "backgroundColor": "#12151f"
       },
       "package": "com.xnoll.app",
-      "softwareKeyboardLayoutMode": "pan",
-      "usesCleartextTraffic": true
+      "softwareKeyboardLayoutMode": "pan"
     },
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "./plugins/withCleartextTraffic"
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
